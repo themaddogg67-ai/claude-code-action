@@ -42,7 +42,7 @@ export type WorkloadIdentityHandle = {
 export function isWorkloadIdentityConfigured(): boolean {
   return Boolean(
     process.env.ANTHROPIC_FEDERATION_RULE_ID?.trim() &&
-      process.env.ANTHROPIC_ORGANIZATION_ID?.trim(),
+    process.env.ANTHROPIC_ORGANIZATION_ID?.trim(),
   );
 }
 

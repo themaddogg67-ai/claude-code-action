@@ -114,31 +114,31 @@ Do not set `anthropic_api_key` or `claude_code_oauth_token` alongside the federa
 
 ## Inputs
 
-| Input                          | Description                                                                                                             | Required | Default                      |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------- |
-| `prompt`                       | The prompt to send to Claude Code                                                                                       | No\*     | ''                           |
-| `prompt_file`                  | Path to a file containing the prompt to send to Claude Code                                                             | No\*     | ''                           |
-| `allowed_tools`                | Comma-separated list of allowed tools for Claude Code to use                                                            | No       | ''                           |
-| `disallowed_tools`             | Comma-separated list of disallowed tools that Claude Code cannot use                                                    | No       | ''                           |
-| `max_turns`                    | Maximum number of conversation turns (default: no limit)                                                                | No       | ''                           |
-| `mcp_config`                   | Path to the MCP configuration JSON file, or MCP configuration JSON string                                               | No       | ''                           |
-| `settings`                     | Path to Claude Code settings JSON file, or settings JSON string                                                         | No       | ''                           |
-| `system_prompt`                | Override system prompt                                                                                                  | No       | ''                           |
-| `append_system_prompt`         | Append to system prompt                                                                                                 | No       | ''                           |
-| `claude_env`                   | Custom environment variables to pass to Claude Code execution (YAML multiline format)                                   | No       | ''                           |
-| `model`                        | Model to use (provider-specific format required for Bedrock/Vertex)                                                     | No       | 'claude-4-0-sonnet-20250219' |
-| `anthropic_model`              | DEPRECATED: Use 'model' instead                                                                                         | No       | 'claude-4-0-sonnet-20250219' |
-| `fallback_model`               | Enable automatic fallback to specified model when default model is overloaded                                           | No       | ''                           |
-| `anthropic_api_key`            | Anthropic API key (required for direct Anthropic API)                                                                   | No       | ''                           |
-| `claude_code_oauth_token`      | Claude Code OAuth token (alternative to anthropic_api_key)                                                              | No       | ''                           |
-| `anthropic_federation_rule_id` | Workload identity federation rule ID (fdrl\_...). Requires `id-token: write` permission                                 | No       | ''                           |
-| `anthropic_organization_id`    | Anthropic organization UUID used for workload identity federation                                                       | No       | ''                           |
-| `anthropic_service_account_id` | Service account ID (svac\_...) the federated token acts as (optional)                                                   | No       | ''                           |
-| `anthropic_workspace_id`       | Workspace ID (wrkspc\_...) for federation. Optional when the rule targets a single workspace                            | No       | ''                           |
-| `anthropic_oidc_audience`      | Audience to request on the GitHub OIDC token. Defaults to https://api.anthropic.com                                     | No       | ''                           |
-| `use_bedrock`                  | Use Amazon Bedrock with OIDC authentication instead of direct Anthropic API                                             | No       | 'false'                      |
-| `use_vertex`                   | Use Google Vertex AI with OIDC authentication instead of direct Anthropic API                                           | No       | 'false'                      |
-| `use_node_cache`               | Whether to use Node.js dependency caching (set to true only for Node.js projects with lock files)                       | No       | 'false'                      |
+| Input                          | Description                                                                                                            | Required | Default                      |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------- |
+| `prompt`                       | The prompt to send to Claude Code                                                                                      | No\*     | ''                           |
+| `prompt_file`                  | Path to a file containing the prompt to send to Claude Code                                                            | No\*     | ''                           |
+| `allowed_tools`                | Comma-separated list of allowed tools for Claude Code to use                                                           | No       | ''                           |
+| `disallowed_tools`             | Comma-separated list of disallowed tools that Claude Code cannot use                                                   | No       | ''                           |
+| `max_turns`                    | Maximum number of conversation turns (default: no limit)                                                               | No       | ''                           |
+| `mcp_config`                   | Path to the MCP configuration JSON file, or MCP configuration JSON string                                              | No       | ''                           |
+| `settings`                     | Path to Claude Code settings JSON file, or settings JSON string                                                        | No       | ''                           |
+| `system_prompt`                | Override system prompt                                                                                                 | No       | ''                           |
+| `append_system_prompt`         | Append to system prompt                                                                                                | No       | ''                           |
+| `claude_env`                   | Custom environment variables to pass to Claude Code execution (YAML multiline format)                                  | No       | ''                           |
+| `model`                        | Model to use (provider-specific format required for Bedrock/Vertex)                                                    | No       | 'claude-4-0-sonnet-20250219' |
+| `anthropic_model`              | DEPRECATED: Use 'model' instead                                                                                        | No       | 'claude-4-0-sonnet-20250219' |
+| `fallback_model`               | Enable automatic fallback to specified model when default model is overloaded                                          | No       | ''                           |
+| `anthropic_api_key`            | Anthropic API key (required for direct Anthropic API)                                                                  | No       | ''                           |
+| `claude_code_oauth_token`      | Claude Code OAuth token (alternative to anthropic_api_key)                                                             | No       | ''                           |
+| `anthropic_federation_rule_id` | Workload identity federation rule ID (fdrl\_...). Requires `id-token: write` permission                                | No       | ''                           |
+| `anthropic_organization_id`    | Anthropic organization UUID used for workload identity federation                                                      | No       | ''                           |
+| `anthropic_service_account_id` | Service account ID (svac\_...) the federated token acts as (optional)                                                  | No       | ''                           |
+| `anthropic_workspace_id`       | Workspace ID (wrkspc\_...) for federation. Optional when the rule targets a single workspace                           | No       | ''                           |
+| `anthropic_oidc_audience`      | Audience to request on the GitHub OIDC token. Defaults to https://api.anthropic.com                                    | No       | ''                           |
+| `use_bedrock`                  | Use Amazon Bedrock with OIDC authentication instead of direct Anthropic API                                            | No       | 'false'                      |
+| `use_vertex`                   | Use Google Vertex AI with OIDC authentication instead of direct Anthropic API                                          | No       | 'false'                      |
+| `use_node_cache`               | Whether to use Node.js dependency caching (set to true only for Node.js projects with lock files)                      | No       | 'false'                      |
 | `show_full_output`             | Show full JSON output (⚠️ May expose secrets - see [security docs](../docs/security.md#️-full-output-security-warning)) | No       | 'false'\*\*                  |
 
 \*Either `prompt` or `prompt_file` must be provided, but not both.
@@ -551,7 +551,6 @@ This example shows how to use OIDC authentication with GCP Vertex AI:
 To securely use your Anthropic API key:
 
 1. Add your API key as a repository secret:
-
    - Go to your repository's Settings
    - Navigate to "Secrets and variables" → "Actions"
    - Click "New repository secret"
