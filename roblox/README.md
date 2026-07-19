@@ -1,0 +1,26 @@
+# Heroes & Villains — Ability Core
+
+Server-authoritative ability system for the Roblox game, upgraded from the
+original `AbilityEngine.lua` / `AbilityManager_2.lua`.
+
+## Where each script goes in Roblox Studio
+
+| File                                                    | Studio location                                           | Script type                     |
+| ------------------------------------------------------- | --------------------------------------------------------- | ------------------------------- |
+| `ServerScriptService/Systems/AbilityEngine.lua`         | `ServerScriptService > Systems > AbilityEngine`           | ModuleScript (replace contents) |
+| `ServerScriptService/Systems/AbilityManager.server.lua` | `ServerScriptService > Systems > AbilityManager`          | Script (replace contents)       |
+| `StarterPlayerScripts/AbilityVFXClient.client.lua`      | `StarterPlayer > StarterPlayerScripts > AbilityVFXClient` | LocalScript (new)               |
+
+## External requirements (already in the game)
+
+- `ReplicatedStorage.UseAbility` — RemoteEvent fired by the existing InputClient
+  (`"Q"/"E"/"R"/"F"` slot presses, `"BEAM_AIM"` while holding, `"BEAM_STOP"` on release).
+- `ReplicatedStorage.Masteries.MasteryData`, `ReplicatedStorage.Characters.CharacterData` —
+  ability definition data.
+- `ServerScriptService.Systems.DataManager` and an `AbilityRegistry` ModuleScript are
+  optional; both are loaded defensively.
+- `ReplicatedStorage.AbilityFX` — RemoteEvent, **auto-created by AbilityEngine**; no setup.
+
+Ability types supported by the engine: `melee`, `aoe`, `dash`, `projectile`,
+`buff`, `beam`, `teleport`, `vortex`, plus `construct` (handled by the manager).
+Optional definition fields are documented at the bottom of `AbilityEngine.lua`.
