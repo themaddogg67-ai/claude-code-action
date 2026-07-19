@@ -10,6 +10,7 @@ original `AbilityEngine.lua` / `AbilityManager_2.lua`.
 | `ServerScriptService/Systems/AbilityEngine.lua`         | `ServerScriptService > Systems > AbilityEngine`           | ModuleScript (replace contents) |
 | `ServerScriptService/Systems/AbilityManager.server.lua` | `ServerScriptService > Systems > AbilityManager`          | Script (replace contents)       |
 | `StarterPlayerScripts/AbilityVFXClient.client.lua`      | `StarterPlayer > StarterPlayerScripts > AbilityVFXClient` | LocalScript (new)               |
+| `ReplicatedStorage/Characters/CharacterKits.lua`        | `ReplicatedStorage > Characters > CharacterKits`          | ModuleScript (new)              |
 
 ## External requirements (already in the game)
 
@@ -17,10 +18,15 @@ original `AbilityEngine.lua` / `AbilityManager_2.lua`.
   (`"Q"/"E"/"R"/"F"` slot presses, `"BEAM_AIM"` while holding, `"BEAM_STOP"` on release).
 - `ReplicatedStorage.Masteries.MasteryData`, `ReplicatedStorage.Characters.CharacterData` —
   ability definition data.
-- `ServerScriptService.Systems.DataManager` and an `AbilityRegistry` ModuleScript are
-  optional; both are loaded defensively.
+- `ServerScriptService.Systems.DataManager`, `AbilityRegistry`, and
+  `CharacterKits` are optional; all are loaded defensively.
 - `ReplicatedStorage.AbilityFX` — RemoteEvent, **auto-created by AbilityEngine**; no setup.
 
 Ability types supported by the engine: `melee`, `aoe`, `dash`, `projectile`,
-`buff`, `beam`, `teleport`, `vortex`, plus `construct` (handled by the manager).
-Optional definition fields are documented at the bottom of `AbilityEngine.lua`.
+`buff`, `beam`, `teleport`, `vortex`, `barrage`, `shield`, `wall`, `zone`,
+`strike`, `chain`, `bind`, `force`, `tendrils`, `breath`, `slam`, `clones`,
+`turret`, `counter`, `phase`, plus `construct` (handled by the manager).
+Universal fields on any damaging def: `stunDuration`, `dotDamage`/`dotDuration`
+(burn/poison), `lifesteal`, `color`/`style` palettes. Per-type fields are
+documented next to each handler in `AbilityEngine.lua`; `CharacterKits.lua`
+holds the doc-based roster movesets (checked before `CharacterData`).

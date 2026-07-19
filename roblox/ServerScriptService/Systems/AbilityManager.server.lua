@@ -60,6 +60,17 @@ end
 local okData, PlayerData = pcall(function() return require(game.ServerScriptService.Systems.DataManager) end)
 if not okData then PlayerData = nil end
 
+-- CharacterKits (ReplicatedStorage > Characters > CharacterKits) holds the
+-- doc-based roster kits. Loaded defensively: if it's missing or broken,
+-- everything still works off CharacterData alone.
+local okKits, CharacterKits = pcall(function()
+	return require(ReplicatedStorage.Characters.CharacterKits)
+end)
+if not okKits then
+	CharacterKits = nil
+	warn("AbilityManager: CharacterKits not loaded — falling back to CharacterData only.")
+end
+
 local categoryStyle = { normal = "energy", fusion = "energy", cursed = "shadow", animal = "physical", god = "cosmic", grim = "shadow" }
 
 ------------------------------------------------
@@ -191,7 +202,14 @@ local function resolve(player, slot)
 		end
 	end
 	-- CHARACTER KIT (Leon / Ice Man / Ember / Titan / Looney / Chasm / ...)
+	-- CharacterKits (doc-based roster) is checked FIRST so the new movesets take
+	-- effect immediately; swap these two blocks to prefer CharacterData instead.
 	local charName = player:GetAttribute("CharacterName")
+	if charName and CharacterKits and CharacterKits[charName] then
+		local kit = CharacterKits[charName]
+		local ab = kit.abilities[slot]
+		if ab then return ab, kit.style, ab.styleKey or kit.styleKey end
+	end
 	local kit = charName and CharacterData[charName]
 	if kit then
 		local ab = kit.abilities[slot]
