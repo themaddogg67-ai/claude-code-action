@@ -25,7 +25,28 @@ original `AbilityEngine.lua` / `AbilityManager_2.lua`.
 Ability types supported by the engine: `melee`, `aoe`, `dash`, `projectile`,
 `buff`, `beam`, `teleport`, `vortex`, `barrage`, `shield`, `wall`, `zone`,
 `strike`, `chain`, `bind`, `force`, `tendrils`, `breath`, `slam`, `clones`,
-`turret`, `counter`, `phase`, plus `construct` (handled by the manager).
+`turret`, `counter`, `phase`, `storm`, `stormcontrol`, `disaster`, plus
+`construct` (handled by the manager).
+
+### Weather & natural disasters
+
+`storm`, `stormcontrol` and `disaster` are restricted to characters the design
+doc says can manipulate storms or natural disasters. A live storm is registered
+in a shared weather system, so `stormcontrol` can **seize the nearest existing
+storm — including an enemy's — and redirect + amplify it**, or brew a fresh one
+if none is nearby ("create storms and manipulate them whenever there is one").
+`disaster` covers `tsunami` (rolling water wall), `tornado` (drifting funnel
+that pulls/lifts), `earthquake` (radial stun + rising rock) and `volcano`
+(crater damage, lava pool, lava bombs). Characters wired for it:
+
+| Character              | Storm creation    | Storm control                           | Natural disaster    |
+| ---------------------- | ----------------- | --------------------------------------- | ------------------- |
+| Liberty                | ✓ (Command Storm) | ✓ seize/steer any storm                 | Tornado             |
+| Megalodon              | ✓ Hurricane       | — (his hurricane is seizable by others) | Tsunami             |
+| Infinity               | ✓ (Command Storm) | ✓ seize/steer any storm                 | Earthquake, Tsunami |
+| Heat Wave / Fahrenheit | —                 | —                                       | Volcano             |
+| Prometheus             | —                 | —                                       | Tsunami             |
+
 Universal fields on any damaging def: `stunDuration`, `dotDamage`/`dotDuration`
 (burn/poison), `lifesteal`, `percentDamage` (fraction of the target's current
 health — Nejhora's 90% drain, Apocalypso's death touch), `color`/`style`

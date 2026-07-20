@@ -99,10 +99,12 @@ Kits["Water Woman"] = { style = "water", styleKey = "water tide", abilities = {
 
 -- PROMETHEUS — Atlantis royalty: everything Water Woman does but stronger,
 -- with a tsunami-sized shield burst and water-portal travel.
+-- His description explicitly names a tsunami-sized wave, so R is a real
+-- tsunami natural disaster (a rolling wall of water that sweeps the field).
 Kits["Prometheus"] = { style = "water", styleKey = "sea king", abilities = {
 	Q = { name = "Riptide Beam",  type = "beam", tickDamage = 6, tickRate = 0.25, range = 70, knockback = 10, energyPerSecond = 10, maxDuration = 7, cooldown = 1 },
 	E = { name = "Deluge Orbs",   type = "barrage", count = 4, interval = 0.14, spread = 5, damage = 16, speed = 125, size = V(2.2, 2.2, 2.2), knockback = 35, cooldown = 6 },
-	R = { name = "Tsunami Ward",  type = "shield", duration = 5, block = 0.85, radius = 9, burst = { count = 12, damage = 16, speed = 110, push = 110 }, cooldown = 22, energy = 40 },
+	R = { name = "Tsunami",       type = "disaster", disaster = "tsunami", damage = 34, width = 30, height = 17, speed = 44, distance = 80, knockback = 85, cooldown = 24, energy = 45 },
 	F = { name = "Ocean Portal",  type = "teleport", range = 55, damage = 20, radius = 9, knockback = 35, cooldown = 9 },
 }}
 
@@ -558,12 +560,14 @@ Kits["Carnage"] = { style = "shadow", styleKey = "carnage fear", color = Color3.
 	F = { name = "Frenzy",        type = "buff", stat = "damageMult", amount = 1.6, duration = 7, cooldown = 24 },
 }}
 
--- MEGALODON — storms, bends water & blood, heat vision, bloodlust, razor teeth.
-Kits["Megalodon"] = { style = "water", styleKey = "megalodon sea storm", abilities = {
-	Q = { name = "Razor Bite",    type = "melee", range = 6, damage = 30, knockback = 40, cooldown = 4 },
-	E = { name = "Tidal Surge",   type = "force", mode = "push", radius = 16, strength = 100, damage = 20, cooldown = 7 },
-	R = { name = "Heat Vision",   type = "beam", tickDamage = 6, tickRate = 0.22, range = 70, color = Color3.fromRGB(255, 60, 40), energyPerSecond = 10, maxDuration = 6, cooldown = 1 },
-	F = { name = "Bloodlust",     type = "buff", stat = "damageMult", amount = 1.6, duration = 8, cooldown = 26, energy = 45 },
+-- MEGALODON — "create storms like hurricanes or tsunamis", bends water/blood,
+-- bloodlust. E summons a hurricane; R hurls a tsunami. His hurricane is a live
+-- storm, so Liberty (or he himself) can seize and steer it with stormcontrol.
+Kits["Megalodon"] = { style = "storm", styleKey = "megalodon sea storm hurricane", abilities = {
+	Q = { name = "Razor Bite",  type = "melee", range = 6, damage = 30, knockback = 40, cooldown = 4 },
+	E = { name = "Hurricane",   type = "storm", stormKind = "hurricane", radius = 26, duration = 10, strikeDamage = 15, strikeRate = 1, pull = 60, cooldown = 22, energy = 45 },
+	R = { name = "Tsunami",     type = "disaster", disaster = "tsunami", damage = 36, width = 32, height = 18, speed = 46, distance = 85, knockback = 90, cooldown = 26, energy = 50 },
+	F = { name = "Bloodlust",   type = "buff", stat = "damageMult", amount = 1.6, duration = 8, cooldown = 26, energy = 45 },
 }}
 
 -- MR.UNIVERSE — the omniforce: infinite anything, every power ever.
@@ -660,12 +664,15 @@ Kits["Golddon"] = { style = "gold", styleKey = "golddon gold laser", abilities =
 	F = { name = "Nullify Blast", type = "projectile", damage = 30, speed = 130, size = V(3.5, 3.5, 3.5), knockback = 45, stunDuration = 1.5, cooldown = 22, energy = 45 },
 }}
 
--- HEAT WAVE — "god of fire": fire, lava, heat waves, sun flares.
-Kits["Heat Wave"] = { style = "fire", styleKey = "heatwave lava sun", abilities = {
-	Q = { name = "Fire Ball",    type = "projectile", damage = 24, speed = 120, splashRadius = 8, dotDamage = 4, dotDuration = 3, knockback = 30, cooldown = 4 },
-	E = { name = "Heat Wave",    type = "breath", duration = 2.2, range = 20, angle = 34, tickDamage = 6, tickRate = 0.22, dotDamage = 3, dotDuration = 2, cooldown = 9 },
-	R = { name = "Lava Field",   type = "zone", radius = 16, duration = 6, tickDamage = 7, tickRate = 0.5, dotDamage = 3, dotDuration = 2, cooldown = 20 },
-	F = { name = "Sun Flare",    type = "strike", mode = "laser", count = 1, delay = 0.7, radius = 12, damage = 40, knockback = 45, dotDamage = 5, dotDuration = 3, cooldown = 22, energy = 45 },
+-- HEAT WAVE — "god of fire": fire, lava, heat waves, sun flares. He commands
+-- lava/magma (a natural disaster) but NOT storms, so he gets a Volcano and no
+-- storm-control ability. R erupts a volcano: crater damage, a lingering lava
+-- pool, and lava bombs raining outward.
+Kits["Heat Wave"] = { style = "fire", styleKey = "heatwave lava sun magma", abilities = {
+	Q = { name = "Fire Ball",  type = "projectile", damage = 24, speed = 120, splashRadius = 8, dotDamage = 4, dotDuration = 3, knockback = 30, cooldown = 4 },
+	E = { name = "Heat Wave",  type = "breath", duration = 2.2, range = 20, angle = 34, tickDamage = 6, tickRate = 0.22, dotDamage = 3, dotDuration = 2, cooldown = 9 },
+	R = { name = "Volcano",    type = "disaster", disaster = "volcano", tickDamage = 9, poolDamage = 6, poolRadius = 13, bombDamage = 13, duration = 8, eruptRate = 0.7, cooldown = 26, energy = 50 },
+	F = { name = "Sun Flare",  type = "strike", mode = "laser", count = 1, delay = 0.7, radius = 12, damage = 40, knockback = 45, dotDamage = 5, dotDuration = 3, cooldown = 22, energy = 45 },
 }}
 -- FAHRENHEIT — god of fire, lava, and magma; same domain, stronger tier.
 Kits["Fahrenheit"] = Kits["Heat Wave"]
@@ -680,19 +687,24 @@ Kits["Celcius"] = { style = "ice", styleKey = "celcius ice god", abilities = {
 	F = { name = "Absolute Zero", type = "zone", radius = 22, duration = 6, tickDamage = 8, tickRate = 0.5, slowAmount = 0.15, cooldown = 40, energy = 50 },
 }}
 
--- INFINITY — controls water, fire, earth, air, void, life; all elements.
-Kits["Infinity"] = { style = "cosmic", styleKey = "infinity elements", abilities = {
-	Q = { name = "Fire Ball",    type = "projectile", damage = 22, speed = 120, splashRadius = 7, dotDamage = 3, dotDuration = 2, knockback = 28, cooldown = 4 },
-	E = { name = "Ice Beam",     type = "beam", tickDamage = 5, tickRate = 0.25, range = 65, slowAmount = 0.4, slowDuration = 1.4, energyPerSecond = 9, maxDuration = 6, cooldown = 1 },
-	R = { name = "Stone Pillars", type = "wall", pillars = 5, height = 10, spacing = 6, duration = 8, material = Enum.Material.Rock, cooldown = 12 },
-	F = { name = "Elemental Storm", type = "zone", radius = 20, duration = 7, tickDamage = 8, tickRate = 0.5, slowAmount = 0.35, cooldown = 28, energy = 50 },
+-- INFINITY — controls water, fire, earth, air (all elements of reality), so she
+-- commands weather AND disasters: E summons/steers a storm, R quakes the earth,
+-- F floods a tsunami. Q keeps her signature fireball.
+Kits["Infinity"] = { style = "storm", styleKey = "infinity elements storm", abilities = {
+	Q = { name = "Fire Ball",      type = "projectile", damage = 22, speed = 120, splashRadius = 7, dotDamage = 3, dotDuration = 2, knockback = 28, cooldown = 4 },
+	E = { name = "Command Storm",  type = "stormcontrol", radius = 24, duration = 9, strikeDamage = 14, strikeRate = 1.1, stormKind = "storm", controlRange = 65, moveSpeed = 42, maxRadius = 44, extend = 7, range = 90, cooldown = 14, energy = 40 },
+	R = { name = "Earthquake",     type = "disaster", disaster = "earthquake", radius = 22, duration = 5, tickDamage = 8, tickRate = 0.55, stunDuration = 0.7, cooldown = 24, energy = 45 },
+	F = { name = "Tsunami",        type = "disaster", disaster = "tsunami", damage = 32, width = 30, height = 16, speed = 44, distance = 78, knockback = 80, cooldown = 26, energy = 50 },
 }}
 
--- LIBERTY — controls storms.
-Kits["Liberty"] = { style = "storm", styleKey = "liberty storm", abilities = {
+-- LIBERTY — "the power to control storms." The dedicated storm-master: E is
+-- the create-OR-command ability (brews a thunderstorm, or seizes and steers the
+-- nearest existing one and doubles its intensity), R is a tornado disaster.
+-- She can hijack ANY live storm on the field — including an enemy's.
+Kits["Liberty"] = { style = "storm", styleKey = "liberty storm lightning", abilities = {
 	Q = { name = "Lightning Bolt", type = "chain", damage = 24, jumps = 1, range = 45, stunDuration = 0.5, cooldown = 5 },
-	E = { name = "Gale Push",      type = "force", mode = "push", radius = 16, strength = 90, damage = 14, cooldown = 7 },
-	R = { name = "Storm Cell",     type = "zone", radius = 16, duration = 6, tickDamage = 6, tickRate = 0.5, cooldown = 20 },
+	E = { name = "Command Storm",  type = "stormcontrol", radius = 24, duration = 9, strikeDamage = 15, strikeRate = 1, stormKind = "storm", controlRange = 70, moveSpeed = 45, maxRadius = 46, extend = 7, range = 95, cooldown = 12, energy = 35 },
+	R = { name = "Tornado",        type = "disaster", disaster = "tornado", radius = 15, duration = 6, tickDamage = 7, tickRate = 0.4, pull = 70, lift = 58, travel = 36, moveSpeed = 12, cooldown = 22, energy = 45 },
 	F = { name = "Chain Lightning", type = "chain", damage = 18, jumps = 5, jumpRange = 20, falloff = 0.82, range = 40, cooldown = 12, energy = 40 },
 }}
 

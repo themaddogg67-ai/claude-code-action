@@ -29,6 +29,14 @@
 	  turret    - summoned sentry that shoots the nearest enemy (mech, drone)
 	  counter   - parry stance: the next hit is reflected back at the attacker
 	  phase     - brief intangibility/invisibility (dodge phase, energy state)
+	  storm        - summon a persistent thundercloud / hurricane (registered in
+	                 the weather system so it can be seized & manipulated)
+	  stormcontrol - if a storm exists nearby, seize + redirect + amplify it;
+	                 otherwise create one ("control storms whenever there is one")
+	  disaster     - natural disaster; def.disaster = "tsunami" | "tornado" |
+	                 "earthquake" | "volcano"
+	  (storm/stormcontrol/disaster are restricted to characters the design doc
+	   says can manipulate storms or natural disasters)
 
 	UNIVERSAL OPTIONAL FIELDS (work on any damaging type):
 	  stunDuration  - roots + disables jump on hit
@@ -284,6 +292,45 @@ local function boltFX(a, b, color)
 	bloomSphere(b, color, 3, 0.2)
 end
 
+-- a dark storm cloud disc that hovers above a center point, with rain + swirl.
+-- Returns {parts=..., cloud=...} so the storm stepper can move/rotate it.
+local function buildStormCloud(center, radius, palette, spiral)
+	local parts = {}
+	local cloud = makePart({
+		Shape = Enum.PartType.Cylinder,
+		Color = Color3.fromRGB(45, 45, 55),
+		Material = Enum.Material.SmoothPlastic,
+		Transparency = 0.2,
+		Size = Vector3.new(4, radius * 2.3, radius * 2.3),
+		CFrame = CFrame.new(center + Vector3.new(0, 26, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+	})
+	local glow = Instance.new("PointLight")
+	glow.Color = palette.main; glow.Brightness = 1.5; glow.Range = math.min(radius * 3, 60); glow.Parent = cloud
+	local rain = Instance.new("ParticleEmitter")
+	rain.Color = ColorSequence.new(palette.accent)
+	rain.LightEmission = 0.4
+	rain.Size = NumberSequence.new(0.25)
+	rain.Transparency = NumberSequence.new({ kp(0, 0.3), kp(1, 0.8) })
+	rain.Lifetime = NumberRange.new(0.7, 1)
+	rain.Speed = NumberRange.new(60, 80)
+	rain.Rotation = NumberRange.new(0, 360)
+	rain.SpreadAngle = Vector2.new(8, 8)
+	rain.EmissionDirection = Enum.NormalId.Right   -- cylinder's flat side faces down after the 90° tilt
+	rain.Rate = math.clamp(radius * 3, 30, 120)
+	rain.Parent = cloud
+	table.insert(parts, cloud)
+
+	if spiral then   -- hurricane: a rotating arm of vapor
+		local arm = makePart({
+			Shape = Enum.PartType.Cylinder, Color = palette.accent, Transparency = 0.55,
+			Size = Vector3.new(1.5, radius * 1.6, radius * 1.6),
+			CFrame = CFrame.new(center + Vector3.new(0, 8, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		})
+		table.insert(parts, arm)
+	end
+	return parts
+end
+
 -------------------------------------------------------------------
 -- SPEED / STATUS MODEL
 -- WalkSpeed = BaseWalkSpeed * SpeedBuffMult * SlowMult * StunMult
@@ -528,12 +575,14 @@ local activeZones = {}
 local activeBreaths = {}
 local activeTurrets = {}
 local activeTendrils = {}
-local stepProjectiles, stepBeams, stepVortexes, stepZones, stepBreaths, stepTurrets, stepTendrils
+local activeStorms = {}     -- storms + natural disasters (weather system)
+local stepProjectiles, stepBeams, stepVortexes, stepZones, stepBreaths, stepTurrets, stepTendrils, stepStorms
 local tickConn = nil
 
 local function anyActive()
 	return #activeProjectiles > 0 or next(activeBeams) ~= nil or #activeVortexes > 0
 		or #activeZones > 0 or #activeBreaths > 0 or #activeTurrets > 0 or #activeTendrils > 0
+		or #activeStorms > 0
 end
 local function ensureTick()
 	if tickConn then return end
@@ -545,12 +594,30 @@ local function ensureTick()
 		stepBreaths(dt)
 		stepTurrets(dt)
 		stepTendrils(dt)
+		stepStorms(dt)
 		if not anyActive() then
 			tickConn:Disconnect()
 			tickConn = nil
 		end
 	end)
 end
+
+-- WEATHER REGISTRY
+-- Any live storm/hurricane/tornado is "controllable": a storm-manipulator can
+-- seize the NEAREST one and redirect + amplify it (see handlers.stormcontrol).
+-- Non-weather disasters (tsunami/earthquake/volcano) are not seizable.
+local function getNearestStorm(pos, maxDist)
+	local best, bestD
+	for _, s in ipairs(activeStorms) do
+		if s.controllable then
+			local d = (s.center - pos).Magnitude
+			if d <= maxDist and (not bestD or d < bestD) then best, bestD = s, d end
+		end
+	end
+	return best
+end
+-- how many storms/disasters are live right now (exposed for HUDs / other systems)
+function AbilityEngine.stormCount() return #activeStorms end
 
 -------------------------------------------------------------------
 -- PROJECTILE CORE (used by projectile, barrage, shield bursts, turrets)
@@ -1411,6 +1478,227 @@ handlers.phase = function(char, root, def, player)
 	end)
 end
 
+-- ================================================================
+-- WEATHER & NATURAL DISASTERS  (only used by storm/disaster kits)
+-- ================================================================
+-- storm extras: stormKind ("storm"|"hurricane"), radius, duration, strikeDamage,
+-- strikeRate (secs between bolts at intensity 1), pull (hurricane wind), atSelf
+handlers.storm = function(char, root, def, player, aim)
+	local palette = paletteFor(def)
+	local radius = def.radius or 22
+	local center
+	if def.atSelf then
+		center = root.Position
+	else
+		center = clampAim(root.Position, aim, def.range or 70) or (root.Position + root.CFrame.LookVector * 18)
+	end
+	center = groundBelow(center, char)
+	local hurricane = def.stormKind == "hurricane"
+
+	local parts = buildStormCloud(center, radius, palette, hurricane)
+	local storm = {
+		kind = hurricane and "hurricane" or "storm", controllable = true,
+		center = center, targetCenter = nil, moveSpeed = def.moveSpeed or 0,
+		radius = radius, intensity = def.intensity or 1,
+		ownerChar = char, ownerPlayer = player, palette = palette, def = def,
+		parts = parts, spin = 0,
+		strikeRate = def.strikeRate or 1.1, strikeTimer = 0.4,
+		tickTimer = 0, tickRate = 0.5,
+		pull = def.pull or 55,
+		endTime = os.clock() + math.clamp(def.duration or 8, 2, 20),
+	}
+	storm.updateFX = function(s, dt)
+		s.spin += dt * (hurricane and 2.2 or 0.5)
+		s.parts[1].CFrame = CFrame.new(s.center + Vector3.new(0, 26, 0)) * CFrame.Angles(0, s.spin, math.rad(90))
+		if s.parts[2] then
+			s.parts[2].CFrame = CFrame.new(s.center + Vector3.new(0, 8, 0)) * CFrame.Angles(0, s.spin * 1.6, math.rad(90))
+		end
+	end
+	table.insert(activeStorms, storm)
+	ensureTick()
+	fxAll("shake", { pos = center, intensity = 0.3, radius = radius + 50 })
+	bloomSphere(center + Vector3.new(0, 24, 0), palette.main, radius, 0.4)
+	return storm
+end
+
+-- stormcontrol: create a storm if none is near, OR seize the nearest existing
+-- storm — redirect it toward your cursor and amplify it. This is the "make
+-- storms and manipulate them whenever there is one" ability.
+-- extras: controlRange (60), moveSpeed (40), maxRadius (44), extend (6),
+-- plus all handlers.storm fields (used when it has to create one).
+handlers.stormcontrol = function(char, root, def, player, aim)
+	local palette = paletteFor(def)
+	local aimPos = clampAim(root.Position, aim, def.range or 90) or (root.Position + root.CFrame.LookVector * 30)
+	local storm = getNearestStorm(aimPos, def.controlRange or 60)
+		or getNearestStorm(root.Position, def.controlRange or 60)
+
+	if storm then
+		-- SEIZE: it now belongs to you (its lightning hits YOUR enemies)...
+		storm.ownerChar = char
+		storm.ownerPlayer = player
+		storm.palette = palette
+		-- ...MOVE it toward your cursor...
+		storm.targetCenter = groundBelow(aimPos, char)
+		storm.moveSpeed = math.max(storm.moveSpeed or 0, def.moveSpeed or 40)
+		-- ...and AMPLIFY it.
+		storm.radius = math.min(storm.radius * 1.35, def.maxRadius or 44)
+		storm.intensity = math.min((storm.intensity or 1) + 1, 3)
+		storm.strikeRate = math.max(storm.strikeRate * 0.75, 0.35)
+		storm.pull = (storm.pull or 55) * 1.2
+		storm.endTime = math.max(storm.endTime, os.clock() + (def.extend or 6))
+		if storm.parts[1] then
+			storm.parts[1].Size = Vector3.new(4, storm.radius * 2.3, storm.radius * 2.3)
+		end
+		-- control tether from the caster's hand up to the cloud
+		boltFX(getMuzzle(char).Position, storm.center + Vector3.new(0, 26, 0), palette.main)
+		emit(root.Position, palette.accent, 12, 16, 0.6, 180, 0.4, TEX_SPARK)
+		fxAll("shake", { pos = storm.center, intensity = 0.35, radius = storm.radius + 50 })
+	else
+		-- nothing to grab: brew a fresh storm at the cursor
+		handlers.storm(char, root, def, player, aim)
+	end
+end
+
+-- disaster: def.disaster selects the kind. All are server-authoritative and
+-- reuse the same damage pipeline as every other ability.
+handlers.disaster = function(char, root, def, player, aim)
+	local palette = paletteFor(def)
+	local sub = def.disaster
+
+	if sub == "tsunami" then
+		-- a giant water wall that rolls forward, sweeping everyone it passes
+		local dir = flatDir(aimDirection(root.Position, aim, root.CFrame.LookVector), root.CFrame.LookVector)
+		local width = def.width or 28
+		local height = def.height or 16
+		local thickness = def.thickness or 5
+		local start = groundBelow(root.Position + dir * 8, char) + Vector3.new(0, height / 2, 0)
+		local wall = makePart({
+			Color = palette.main, Material = Enum.Material.Glass, Transparency = 0.35,
+			Size = Vector3.new(width, height, thickness),
+			CFrame = safeLookAt(start, start + dir),
+		})
+		local foam = Instance.new("ParticleEmitter")
+		foam.Color = ColorSequence.new(palette.accent)
+		foam.Size = NumberSequence.new({ kp(0, 2), kp(1, 0) })
+		foam.Transparency = NumberSequence.new({ kp(0, 0.2), kp(1, 1) })
+		foam.Lifetime = NumberRange.new(0.5, 0.9)
+		foam.Speed = NumberRange.new(6, 12)
+		foam.Rate = 80
+		foam.Parent = wall
+		local storm = {
+			kind = "tsunami", controllable = false,
+			center = start, dir = dir, ownerChar = char, ownerPlayer = player,
+			palette = palette, def = def, parts = { wall }, hitSet = {},
+			width = width, thickness = thickness + 2,
+			speed = def.speed or 42, traveled = 0, maxDist = def.distance or 75,
+			knockback = def.knockback or 75,
+			endTime = os.clock() + 6,
+		}
+		storm.updateFX = function(s) s.parts[1].CFrame = safeLookAt(s.center, s.center + s.dir) end
+		table.insert(activeStorms, storm)
+		ensureTick()
+		fxAll("shake", { pos = start, intensity = 0.4, radius = 70 })
+
+	elseif sub == "tornado" then
+		-- a drifting funnel that pulls, lifts and grinds anyone caught in it
+		local radius = def.radius or 14
+		local center = clampAim(root.Position, aim, def.range or 50) or (root.Position + root.CFrame.LookVector * 16)
+		center = groundBelow(center, char)
+		local dir = flatDir(aimDirection(root.Position, aim, root.CFrame.LookVector), root.CFrame.LookVector)
+		local parts = {}
+		local tiers = 5
+		for t = 1, tiers do
+			local frac = t / tiers
+			local seg = makePart({
+				Shape = Enum.PartType.Cylinder, Color = palette.main,
+				Transparency = 0.45,
+				Size = Vector3.new(4 + frac * 26, radius * (0.4 + frac), radius * (0.4 + frac)),
+				CFrame = CFrame.new(center + Vector3.new(0, 2 + frac * 22, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			})
+			table.insert(parts, { part = seg, y = 2 + frac * 22, r = radius * (0.4 + frac) })
+		end
+		local flat = {}
+		for _, p in ipairs(parts) do table.insert(flat, p.part) end
+		local storm = {
+			kind = "tornado", controllable = true,
+			center = center, targetCenter = center + dir * (def.travel or 34),
+			moveSpeed = def.moveSpeed or 11, radius = radius, intensity = def.intensity or 1,
+			ownerChar = char, ownerPlayer = player, palette = palette, def = def,
+			parts = flat, tiers = parts, spin = 0,
+			pull = def.pull or 65, lift = def.lift or 55,
+			tickTimer = 0, tickRate = def.tickRate or 0.4,
+			endTime = os.clock() + math.clamp(def.duration or 6, 2, 15),
+		}
+		storm.updateFX = function(s, dt)
+			s.spin += dt * 6
+			for _, seg in ipairs(s.tiers) do
+				seg.part.CFrame = CFrame.new(s.center + Vector3.new(0, seg.y, 0)) * CFrame.Angles(0, s.spin, math.rad(90))
+			end
+		end
+		table.insert(activeStorms, storm)
+		ensureTick()
+		emit(center, Color3.fromRGB(120, 110, 100), 20, 14, 2, 90, 1, TEX_SMOKE)
+
+	elseif sub == "earthquake" then
+		local radius = def.radius or 22
+		local center = def.atSelf and root.Position
+			or (clampAim(root.Position, aim, def.range or 45) or (root.Position + root.CFrame.LookVector * 12))
+		center = groundBelow(center, char)
+		local ring = makePart({
+			Shape = Enum.PartType.Cylinder, Color = palette.main, Transparency = 0.6,
+			Size = Vector3.new(0.4, radius * 2, radius * 2),
+			CFrame = CFrame.new(center) * CFrame.Angles(0, 0, math.rad(90)),
+		})
+		local storm = {
+			kind = "earthquake", controllable = false,
+			center = center, radius = radius, ownerChar = char, ownerPlayer = player,
+			palette = palette, def = def, parts = { ring },
+			tickTimer = 0, tickRate = def.tickRate or 0.55,
+			endTime = os.clock() + math.clamp(def.duration or 5, 2, 12),
+		}
+		table.insert(activeStorms, storm)
+		ensureTick()
+		shockwaveRing(center, palette.main, radius, 0.5)
+		fxAll("blast", { pos = center, color = palette.main, radius = radius, power = 1.1 })
+
+	elseif sub == "volcano" then
+		local center = clampAim(root.Position, aim, def.range or 45) or (root.Position + root.CFrame.LookVector * 16)
+		center = groundBelow(center, char)
+		local mound = makePart({
+			Shape = Enum.PartType.Ball, Color = Color3.fromRGB(60, 45, 40),
+			Material = Enum.Material.Basalt, Transparency = 0,
+			Size = Vector3.new(12, 7, 12), CFrame = CFrame.new(center + Vector3.new(0, 1, 0)),
+		})
+		local crater = makePart({
+			Shape = Enum.PartType.Ball, Color = palette.main, Material = Enum.Material.Neon,
+			Transparency = 0.1, Size = Vector3.new(5, 5, 5), CFrame = CFrame.new(center + Vector3.new(0, 4, 0)),
+		})
+		local light = Instance.new("PointLight")
+		light.Color = palette.main; light.Brightness = 3; light.Range = 24; light.Parent = crater
+		-- lingering lava pool (reuses the zone stepper for the DoT)
+		table.insert(activeZones, {
+			center = center, radius = def.poolRadius or 12, ownerChar = char, ownerPlayer = player,
+			palette = palette, tickDamage = def.poolDamage or 5, slowAmount = 0.4,
+			tickRate = 0.5, tickTimer = 0, def = { dotDamage = 3, dotDuration = 2 },
+			endTime = os.clock() + math.clamp(def.duration or 7, 2, 15),
+			parts = { makePart({ Shape = Enum.PartType.Cylinder, Color = palette.main, Transparency = 0.4,
+				Size = Vector3.new(0.4, (def.poolRadius or 12) * 2, (def.poolRadius or 12) * 2),
+				CFrame = CFrame.new(center + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90)) }) },
+		})
+		local storm = {
+			kind = "volcano", controllable = false,
+			center = center, ownerChar = char, ownerPlayer = player, palette = palette, def = def,
+			parts = { mound, crater },
+			tickTimer = 0, tickRate = 0.5,
+			eruptTimer = 0.3, eruptRate = def.eruptRate or 0.7,
+			endTime = os.clock() + math.clamp(def.duration or 7, 2, 15),
+		}
+		table.insert(activeStorms, storm)
+		ensureTick()
+		blastFX(center + Vector3.new(0, 4, 0), palette, 12, 1.2, char)
+	end
+end
+
 -------------------------------------------------------------------
 -- TICK STEPPERS
 -------------------------------------------------------------------
@@ -1734,6 +2022,152 @@ stepTendrils = function(dt)
 					boltFX(tipPos, rt.Position, e.palette.main)
 					hitTarget(e.char, m, h, rt, e.def, e.tickDamage, e.palette)
 				end)
+			end
+		end
+	end
+end
+
+stepStorms = function(dt)
+	for i = #activeStorms, 1, -1 do
+		local s = activeStorms[i]
+		local expired = os.clock() > s.endTime
+
+		-- drift toward a commanded target (stormcontrol / tornado travel)
+		if s.targetCenter and not expired then
+			local to = s.targetCenter - s.center
+			local maxStep = (s.moveSpeed or 0) * dt
+			if to.Magnitude > 0.2 and maxStep > 0 then
+				s.center += (to.Magnitude <= maxStep) and to or to.Unit * maxStep
+			end
+		end
+		if s.kind == "tsunami" then
+			local step = s.speed * dt
+			s.center += s.dir * step
+			s.traveled += step
+			if s.traveled >= s.maxDist then expired = true end
+		end
+
+		if expired then
+			for _, p in ipairs(s.parts) do
+				TweenService:Create(p, TweenInfo.new(0.5), { Transparency = 1 }):Play()
+				Debris:AddItem(p, 0.55)
+			end
+			table.remove(activeStorms, i)
+		else
+			if s.updateFX then s.updateFX(s, dt) end
+			if s.tickTimer then s.tickTimer -= dt end
+
+			if s.kind == "storm" or s.kind == "hurricane" then
+				if s.kind == "hurricane" then
+					for _, plr in ipairs(Players:GetPlayers()) do
+						local pc = plr.Character
+						if pc and pc ~= s.ownerChar then
+							local hrp = pc:FindFirstChild("HumanoidRootPart")
+							if hrp then
+								local flat = Vector3.new(s.center.X - hrp.Position.X, 0, s.center.Z - hrp.Position.Z)
+								if flat.Magnitude < s.radius and flat.Magnitude > 1 then
+									local tangent = Vector3.new(-flat.Z, 0, flat.X).Unit
+									hrp.AssemblyLinearVelocity = hrp.AssemblyLinearVelocity:Lerp(
+										tangent * s.pull + flat.Unit * (s.pull * 0.3) + Vector3.new(0, 6, 0), 0.2)
+								end
+							end
+						end
+					end
+				end
+				s.strikeTimer -= dt
+				if s.strikeTimer <= 0 then
+					s.strikeTimer = s.strikeRate / (s.intensity or 1)
+					local cloudPos = s.center + Vector3.new(0, 26, 0)
+					local picks = {}
+					forEachTarget(getHitboxParts(s.center, Vector3.new(s.radius * 2, 44, s.radius * 2), s.ownerChar), s.ownerChar, nil, function(m, h, r)
+						table.insert(picks, { m = m, h = h, r = r })
+					end)
+					if #picks > 0 then
+						local t = picks[rng:NextInteger(1, #picks)]
+						boltFX(cloudPos, t.r.Position, s.palette.main)
+						hitTarget(s.ownerChar, t.m, t.h, t.r, s.def, s.def.strikeDamage or 14, s.palette)
+						applyStun(t.m, 0.4)
+						fxAll("shake", { pos = t.r.Position, intensity = 0.3, radius = 45 })
+					else
+						local ang = rng:NextNumber(0, math.pi * 2)
+						local gp = groundBelow(s.center + Vector3.new(math.cos(ang), 0, math.sin(ang)) * rng:NextNumber(0, s.radius), s.ownerChar)
+						boltFX(cloudPos, gp, s.palette.main)
+						emit(gp, s.palette.accent, 8, 12, 0.6, 160, 0.35, TEX_SPARK)
+					end
+				end
+
+			elseif s.kind == "tornado" then
+				for _, plr in ipairs(Players:GetPlayers()) do
+					local pc = plr.Character
+					if pc and pc ~= s.ownerChar then
+						local hrp = pc:FindFirstChild("HumanoidRootPart")
+						if hrp then
+							local flat = Vector3.new(s.center.X - hrp.Position.X, 0, s.center.Z - hrp.Position.Z)
+							if flat.Magnitude < s.radius then
+								local tangent = flat.Magnitude > 0.5 and Vector3.new(-flat.Z, 0, flat.X).Unit or Vector3.zAxis
+								local inward = flat.Magnitude > 1 and flat.Unit or Vector3.zero
+								hrp.AssemblyLinearVelocity = tangent * s.pull + inward * (s.pull * 0.5) + Vector3.new(0, s.lift, 0)
+							end
+						end
+					end
+				end
+				if s.tickTimer <= 0 then
+					s.tickTimer = s.tickRate
+					forEachTarget(getHitboxParts(s.center, Vector3.new(s.radius * 2, 44, s.radius * 2), s.ownerChar), s.ownerChar, nil, function(m, h, r)
+						damageModel(s.ownerChar, m, h, r, s.def.tickDamage or 6, 0, 0, s.palette)
+					end)
+				end
+
+			elseif s.kind == "tsunami" then
+				forEachTarget(getHitboxParts(safeLookAt(s.center, s.center + s.dir), Vector3.new(s.width, 18, s.thickness), s.ownerChar), s.ownerChar, s.hitSet, function(m, h, r)
+					damageModel(s.ownerChar, m, h, r, s.def.damage or 30, 0, 0, s.palette)
+					r.AssemblyLinearVelocity = s.dir * s.knockback + Vector3.new(0, 30, 0)
+				end)
+
+			elseif s.kind == "earthquake" then
+				if s.tickTimer <= 0 then
+					s.tickTimer = s.tickRate
+					forEachTarget(getHitboxParts(s.center, Vector3.new(s.radius * 2, 14, s.radius * 2), s.ownerChar), s.ownerChar, nil, function(m, h, r)
+						damageModel(s.ownerChar, m, h, r, s.def.tickDamage or 8, 0, 10, s.palette)
+						applyStun(m, s.def.stunDuration or 0.7)
+					end)
+					local ang = rng:NextNumber(0, math.pi * 2)
+					local rp = groundBelow(s.center + Vector3.new(math.cos(ang), 0, math.sin(ang)) * rng:NextNumber(0, s.radius), s.ownerChar)
+					local rock = makePart({ Color = Color3.fromRGB(95, 82, 70), Material = Enum.Material.Rock,
+						Size = Vector3.new(rng:NextNumber(2, 4), rng:NextNumber(3, 6), rng:NextNumber(2, 4)),
+						CFrame = CFrame.new(rp) * CFrame.Angles(rng:NextNumber(-0.3, 0.3), rng:NextNumber(0, 6.28), rng:NextNumber(-0.3, 0.3)) })
+					local topY = rock.Size.Y * 0.5
+					TweenService:Create(rock, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { CFrame = rock.CFrame * CFrame.new(0, topY, 0) }):Play()
+					task.delay(0.9, function()
+						if rock.Parent then
+							TweenService:Create(rock, TweenInfo.new(0.4), { Transparency = 1, CFrame = rock.CFrame * CFrame.new(0, -rock.Size.Y, 0) }):Play()
+							Debris:AddItem(rock, 0.45)
+						end
+					end)
+					fxAll("blast", { pos = s.center, color = s.palette.main, radius = s.radius * 0.5, power = 0.7 })
+				end
+
+			elseif s.kind == "volcano" then
+				if s.tickTimer <= 0 then
+					s.tickTimer = s.tickRate
+					forEachTarget(getHitboxParts(s.center, Vector3.new(12, 16, 12), s.ownerChar), s.ownerChar, nil, function(m, h, r)
+						hitTarget(s.ownerChar, m, h, r, s.def, s.def.tickDamage or 8, s.palette)
+					end)
+				end
+				s.eruptTimer -= dt
+				if s.eruptTimer <= 0 then
+					s.eruptTimer = s.eruptRate
+					for _ = 1, 3 do
+						local ang = rng:NextNumber(0, math.pi * 2)
+						local dir = Vector3.new(math.cos(ang), rng:NextNumber(1.3, 2.2), math.sin(ang)).Unit
+						spawnProjectileRaw(s.ownerChar, s.ownerPlayer, {
+							name = "LavaBomb", damage = s.def.bombDamage or 12, speed = 62, knockback = 25,
+							size = Vector3.new(1.7, 1.7, 1.7), life = 1.5, dotDamage = 3, dotDuration = 2, splashRadius = 5,
+						}, s.palette, s.center + Vector3.new(0, 4, 0) + dir * 2, dir)
+					end
+					bloomSphere(s.center + Vector3.new(0, 4, 0), s.palette.main, 6, 0.3)
+					fxAll("shake", { pos = s.center, intensity = 0.3, radius = 55 })
+				end
 			end
 		end
 	end
