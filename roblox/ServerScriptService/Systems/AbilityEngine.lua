@@ -494,8 +494,14 @@ local function damageModel(attackerChar, model, hum, root, damage, knockback, up
 	return targetPlayer
 end
 
--- def-aware hit: damage + knockback + stun + burn/poison DoT + lifesteal
+-- def-aware hit: damage + knockback + stun + burn/poison DoT + lifesteal.
+-- percentDamage adds a fraction of the target's CURRENT health on top
+-- (Nejhora's 90% drain, Apocalypso's death touch) - still reducible by
+-- shields/blocking/forms like any other damage.
 local function hitTarget(attackerChar, model, hum, root, def, dmg, palette)
+	if def.percentDamage then
+		dmg = (dmg or 0) + hum.Health * def.percentDamage
+	end
 	local tp = damageModel(attackerChar, model, hum, root, dmg, def.knockback, def.up, palette)
 	if hum.Health > 0 then
 		if def.stunDuration then applyStun(model, def.stunDuration) end

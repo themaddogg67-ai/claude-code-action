@@ -27,6 +27,13 @@ Ability types supported by the engine: `melee`, `aoe`, `dash`, `projectile`,
 `strike`, `chain`, `bind`, `force`, `tendrils`, `breath`, `slam`, `clones`,
 `turret`, `counter`, `phase`, plus `construct` (handled by the manager).
 Universal fields on any damaging def: `stunDuration`, `dotDamage`/`dotDuration`
-(burn/poison), `lifesteal`, `color`/`style` palettes. Per-type fields are
-documented next to each handler in `AbilityEngine.lua`; `CharacterKits.lua`
-holds the doc-based roster movesets (checked before `CharacterData`).
+(burn/poison), `lifesteal`, `percentDamage` (fraction of the target's current
+health — Nejhora's 90% drain, Apocalypso's death touch), `color`/`style`
+palettes. Per-type fields are documented next to each handler in
+`AbilityEngine.lua`.
+
+`CharacterKits.lua` holds full Q/E/R/F movesets for **169 characters** from the
+design doc (checked before `CharacterData`; kit keys must match each player's
+`CharacterName` attribute exactly). Pure lore/non-combatant entries (armies,
+factions, celestial concepts) are intentionally omitted. Every kit and every
+ability type is validated by the harness in `scratchpad/harness.lua`.
