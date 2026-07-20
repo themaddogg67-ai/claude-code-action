@@ -148,10 +148,10 @@ piece warns and no-ops instead of erroring. Tune enemy counts in
 The campaign is a 30-season saga, so the controller is map-agnostic. Two more
 files make adding a map a data change, not a rewrite:
 
-| File | Studio location | Type |
-| --- | --- | --- |
-| `ReplicatedStorage/Campaign/CampaignRegistry.lua` | `ReplicatedStorage > Campaign > CampaignRegistry` | ModuleScript (new) |
-| `ReplicatedStorage/Campaign/MetroCityCampaign.lua` | (updated — adds `CityModelName` / `MapBuilder` / `Season`) | ModuleScript |
+| File                                               | Studio location                                            | Type               |
+| -------------------------------------------------- | ---------------------------------------------------------- | ------------------ |
+| `ReplicatedStorage/Campaign/CampaignRegistry.lua`  | `ReplicatedStorage > Campaign > CampaignRegistry`          | ModuleScript (new) |
+| `ReplicatedStorage/Campaign/MetroCityCampaign.lua` | (updated — adds `CityModelName` / `MapBuilder` / `Season`) | ModuleScript       |
 
 `CampaignRegistry` indexes every season (id, title, boss, summary) and points
 the built ones at their map builder + route module. `ActiveSeason` selects which
@@ -169,3 +169,25 @@ the `MetroCityCampaign` contract (`Stages`, `getBeacon`, `enableCheckpoint`,
 `EnemyName`, `BossName`, `CityModelName`, `MapBuilder`), then point that season's
 registry entry at them and set `ActiveSeason`. Nothing in the controller,
 enemies, HUD, or boss logic changes.
+
+## World Atlas (map-making reference)
+
+`WorldAtlas.lua` (`ReplicatedStorage > Campaign > WorldAtlas`, ModuleScript)
+catalogs the whole Aroraverse from the omniverse doc as **map-making data** —
+pure data, no Roblox globals, cheap to require:
+
+- **100 planets** tagged by tier (core/mid/exotic/ultra/god) and **biome**.
+- **26 biomes**, each mapped to a palette hint — `{ material, ground rgb,
+  accent rgb, sky mood }` — so any location becomes a themeable map from data
+  instead of guesswork (`WorldAtlas.biome("volcanic")` → Basalt ground, orange
+  accent, ashen sky).
+- **Story locations** the seasons visit (Metro City, Quantum City, Gildonia,
+  Valhalla, Planet Sparta, the Gold/Silver Fountains) with `builder`/`route`/
+  `mapReady` fields — Metro City is the one built so far.
+- The 8-level **hierarchy** (Planet → … → Aroraverse), **12 themed universes**,
+  the **5 enemy universes**, Manderin's Imperium worlds, and contested war zones.
+- `SeasonLocations` links a season id to its canonical place.
+
+Helpers: `get(name)`, `byBiome(tag)`, `byTier(tier)`, `biome(tag)`,
+`locationForSeason(id)`, `buildableList()`. This is the bridge for the next
+maps: pick a location, read its biome palette, generate.
