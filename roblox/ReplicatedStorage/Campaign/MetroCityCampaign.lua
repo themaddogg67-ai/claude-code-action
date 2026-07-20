@@ -44,18 +44,23 @@ MetroCityCampaign.Districts = {
 	{ id = 11, name = "City Walls",           desc = "Massive walls around Metro City, controlled by Manderin's military." },
 }
 
+-- who you fight through the campaign
+MetroCityCampaign.EnemyName = "Manderin Security"
+MetroCityCampaign.BossName  = "Manderin"
+
 -- ordered mission route (marker names match beacons the builder creates:
--- "Stage<id>_<DistrictWithoutSpaces>")
+-- "Stage<id>_<DistrictWithoutSpaces>"). `enemies` = guards to defeat before the
+-- objective marker unlocks; `boss` stages spawn Manderin instead.
 MetroCityCampaign.Stages = {
-	{ id = 1, district = "Residential Area",    markerName = "Stage1_ResidentialArea",     objective = "Escape the monitored residential blocks." },
-	{ id = 2, district = "Central Plaza",       markerName = "Stage2_CentralPlaza",         objective = "Reach Manderin's monument in Central Plaza." },
-	{ id = 3, district = "Security Checkpoints", markerName = "Stage3_SecurityCheckpoints",  objective = "Slip past a Manderin Security checkpoint." },
-	{ id = 4, district = "Tech District",       markerName = "Stage4_TechDistrict",         objective = "Sabotage the labs in the Tech District." },
-	{ id = 5, district = "Industrial District", markerName = "Stage5_IndustrialDistrict",   objective = "Shut down the Industrial District plants." },
-	{ id = 6, district = "Docks",               markerName = "Stage6_Docks",                objective = "Intercept a shipment at the Docks." },
-	{ id = 7, district = "Undercity",           markerName = "Stage7_Undercity",            objective = "Descend into the Undercity black market." },
-	{ id = 8, district = "Manderin Arena",      markerName = "Stage8_ManderinArena",        objective = "Win the trial in the Manderin Arena." },
-	{ id = 9, district = "Manderin Tower",      markerName = "Stage9_ManderinTower",        objective = "Storm Manderin Tower — final confrontation.", boss = true },
+	{ id = 1, district = "Residential Area",    markerName = "Stage1_ResidentialArea",     enemies = 3, objective = "Escape the monitored residential blocks." },
+	{ id = 2, district = "Central Plaza",       markerName = "Stage2_CentralPlaza",         enemies = 4, objective = "Reach Manderin's monument in Central Plaza." },
+	{ id = 3, district = "Security Checkpoints", markerName = "Stage3_SecurityCheckpoints",  enemies = 4, objective = "Break through a Manderin Security checkpoint." },
+	{ id = 4, district = "Tech District",       markerName = "Stage4_TechDistrict",         enemies = 5, objective = "Sabotage the labs in the Tech District." },
+	{ id = 5, district = "Industrial District", markerName = "Stage5_IndustrialDistrict",   enemies = 5, objective = "Shut down the Industrial District plants." },
+	{ id = 6, district = "Docks",               markerName = "Stage6_Docks",                enemies = 5, objective = "Intercept a shipment at the Docks." },
+	{ id = 7, district = "Undercity",           markerName = "Stage7_Undercity",            enemies = 6, objective = "Fight through the Undercity black market." },
+	{ id = 8, district = "Manderin Arena",      markerName = "Stage8_ManderinArena",        enemies = 6, objective = "Win the trial in the Manderin Arena." },
+	{ id = 9, district = "Manderin Tower",      markerName = "Stage9_ManderinTower",        enemies = 0, objective = "Storm Manderin Tower — defeat Manderin.", boss = true },
 }
 
 -- helper: the final boss stage (Manderin at the top of his tower)

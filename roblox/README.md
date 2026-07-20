@@ -114,3 +114,31 @@ Docks → Undercity → Arena → **Manderin Tower** boss), district description
 from the concept, and helpers `enableCheckpoint(workspace, stageId)` and
 `getBeacon(workspace, stageId)`. Your campaign controller reads the stages and
 drives objectives off the beacons — no positions hard-coded twice.
+
+## Campaign gameplay (controller + enemies + boss)
+
+Beyond the map, four files run the campaign as shared co-op progression:
+
+| File | Studio location | Type |
+| --- | --- | --- |
+| `ServerStorage/EnemyFactory.lua` | `ServerStorage > EnemyFactory` | ModuleScript (new) |
+| `ServerScriptService/CampaignController.server.lua` | `ServerScriptService > CampaignController` | Script (new) |
+| `StarterPlayerScripts/CampaignHud.client.lua` | `StarterPlayer > StarterPlayerScripts > CampaignHud` | LocalScript (new) |
+| `ReplicatedStorage/Campaign/MetroCityCampaign.lua` | (updated — adds per-stage enemy counts) | ModuleScript |
+
+**Flow:** each stage spawns Manderin Security guards at that district's beacon →
+players defeat them with their normal abilities → the marker turns green →
+a player reaches it → the checkpoint advances → next stage. The finale spawns
+**Manderin** at the tower, and the stage ends when he falls.
+
+**Enemies use your existing systems, not new ones.** Guards and the boss are
+part-built R6 rigs with real Humanoids, so `AbilityEngine` already damages and
+knocks them around — nothing extra to wire. The boss *casts through the same
+engine*: `AbilityEngine.run(nil, bossChar, def, targetPos)` drives an Aegis
+Slam, Tentacle Lash, Laser Barrage, Force Repulse and Power Nova with full VFX.
+
+**HUD** shows stage x/9, the district, the objective, and live status (enemies
+remaining / "reach the marker" / boss / victory), driven by the auto-created
+`ReplicatedStorage.CampaignEvent`. Everything loads defensively — a missing
+piece warns and no-ops instead of erroring. Tune enemy counts in
+`MetroCityCampaign.Stages` and enemy/boss stats in the `EnemyFactory` calls.
