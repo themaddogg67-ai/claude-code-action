@@ -58,3 +58,59 @@ design doc (checked before `CharacterData`; kit keys must match each player's
 `CharacterName` attribute exactly). Pure lore/non-combatant entries (armies,
 factions, celestial concepts) are intentionally omitted. Every kit and every
 ability type is validated by the harness in `scratchpad/harness.lua`.
+
+---
+
+# Metro City — campaign map
+
+A procedural generator that builds Metro City (Manderin's capital) from the
+concept art — all 11 districts — out of parts, with no uploaded models or
+textures. Branding ("M", "MANDERIN", "MANDERIN TECH") is drawn with SurfaceGui
+text. It executes to ~1,067 parts / ~1,200 instances (validated end-to-end).
+
+## Where each file goes
+
+| File | Studio location | Script type |
+| --- | --- | --- |
+| `ServerStorage/MetroCityBuilder.lua` | `ServerStorage > MetroCityBuilder` | ModuleScript (new) |
+| `ServerScriptService/BuildMetroCity.server.lua` | `ServerScriptService > BuildMetroCity` | Script (new) |
+| `ReplicatedStorage/Campaign/MetroCityCampaign.lua` | `ReplicatedStorage > Campaign > MetroCityCampaign` | ModuleScript (new) |
+
+## Building the map
+
+**Bake once (recommended).** In Studio, open the Command Bar and run:
+
+```lua
+require(game.ServerStorage.MetroCityBuilder).build(workspace)
+```
+
+`workspace.MetroCity` appears as real, editable geometry. Save the place — it
+never rebuilds. Then set `BUILD_AT_RUNTIME = false` in `BuildMetroCity` (or
+delete that Script). Leaving it `true` is safe: it only builds when `MetroCity`
+is missing. Turn on `Workspace.StreamingEnabled` for a map this size.
+
+## The 11 districts
+
+Central Plaza (Manderin monument) · Manderin Tower (tallest — campaign boss) ·
+Tech District (purple/cyan neon) · Industrial District (smokestacks + tanks) ·
+Residential Area · Docks (water, cranes, ship, containers) · Security
+Checkpoints (scanner gates) · Sky Bridges · Undercity (hidden purple level under
+the plaza, reached by a stair shaft) · Manderin Arena (domed) · City Walls
+(perimeter, corner towers, main gate). Each is a named Model under
+`workspace.MetroCity.Districts` with a `District` attribute.
+
+## Campaign integration
+
+`build()` also creates `workspace.MetroCity.Campaign` with:
+
+- `Spawns/CampaignStart` — the stage-1 SpawnLocation, plus one disabled
+  `Checkpoint_<n>` per stage (enable as the player advances).
+- `Objectives/Stage<n>_<District>` — a glowing beacon per mission stage, tagged
+  with `Stage`, `District`, and `Objective` attributes.
+
+`MetroCityCampaign` (ReplicatedStorage) is the data contract: the ordered
+9-stage route (Residential → Central Plaza → Security → Tech → Industrial →
+Docks → Undercity → Arena → **Manderin Tower** boss), district descriptions
+from the concept, and helpers `enableCheckpoint(workspace, stageId)` and
+`getBeacon(workspace, stageId)`. Your campaign controller reads the stages and
+drives objectives off the beacons — no positions hard-coded twice.
