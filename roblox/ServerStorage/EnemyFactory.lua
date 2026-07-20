@@ -222,7 +222,8 @@ end
 -------------------------------------------------------------------
 -- BOSS: MANDERIN
 -------------------------------------------------------------------
--- attack patterns the boss cycles through, run via AbilityEngine.run(nil, char, def, aimPos)
+-- DEFAULT attack patterns (used when the controller doesn't derive a move set
+-- from the villain's CharacterKits). Run via AbilityEngine.run(nil, char, def, aim).
 local BOSS_MOVES = {
 	{ name = "Aegis Slam",       type = "slam", radius = 18, damage = 26, knockback = 45, up = 25, stunDuration = 0.6, style = "energy", styleKey = "manderin" },
 	{ name = "Tentacle Lash",    type = "tendrils", count = 4, duration = 5, range = 24, tickDamage = 7, tickRate = 0.7, follow = true, style = "energy", styleKey = "manderin" },
@@ -256,6 +257,7 @@ function EnemyFactory.spawnBoss(pos, opts)
 	end
 
 	local engine = opts.abilityEngine
+	local moves = opts.moves or BOSS_MOVES     -- villain's real kit, or the default set
 	local aggro = opts.aggro or 300
 	local meleeRange = opts.meleeRange or 9
 	local meleeCd, castCd = 0, os.clock() + 2
@@ -272,10 +274,10 @@ function EnemyFactory.spawnBoss(pos, opts)
 					meleePlayer(hrp, targetRoot.Parent, opts.meleeDamage or 16, opts.knockback or 40)
 				end
 				-- cast a real ability on a timer
-				if engine and os.clock() >= castCd then
+				if engine and #moves > 0 and os.clock() >= castCd then
 					castCd = os.clock() + (opts.castInterval or 3.2)
-					moveIndex = (moveIndex % #BOSS_MOVES) + 1
-					local def = BOSS_MOVES[moveIndex]
+					moveIndex = (moveIndex % #moves) + 1
+					local def = moves[moveIndex]
 					local ok = pcall(function()
 						engine.run(nil, model, def, targetRoot.Position)
 					end)

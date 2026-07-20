@@ -31,16 +31,49 @@ local function safeRequire(inst)
 	return ok and mod or nil
 end
 
-local Campaign = safeRequire(ReplicatedStorage:FindFirstChild("Campaign")
-	and ReplicatedStorage.Campaign:FindFirstChild("MetroCityCampaign"))
+local campaignFolder = ReplicatedStorage:FindFirstChild("Campaign")
 local EnemyFactory = safeRequire(ServerStorage:FindFirstChild("EnemyFactory"))
 local AbilityEngine = safeRequire(ServerStorage:FindFirstChild("AbilityEngine")
 	or (game.ServerScriptService:FindFirstChild("Systems")
 		and game.ServerScriptService.Systems:FindFirstChild("AbilityEngine")))
+local CharacterKits = safeRequire(ReplicatedStorage:FindFirstChild("Characters")
+	and ReplicatedStorage.Characters:FindFirstChild("CharacterKits"))
+
+-- Pick the ACTIVE season from the registry (multi-map ready); fall back to
+-- Metro City directly so a missing registry still runs the built map.
+local Registry = safeRequire(campaignFolder and campaignFolder:FindFirstChild("CampaignRegistry"))
+local activeSeason = Registry and Registry.getActive() or nil
+local routeName = (activeSeason and activeSeason.route) or "MetroCityCampaign"
+local Campaign = safeRequire(campaignFolder and campaignFolder:FindFirstChild(routeName))
 
 if not Campaign or not EnemyFactory then
-	warn("CampaignController: missing MetroCityCampaign or EnemyFactory — campaign disabled.")
+	warn("CampaignController: missing route module (" .. routeName .. ") or EnemyFactory — campaign disabled.")
 	return
+end
+
+-- Derive a boss's attacks from the villain's real CharacterKits entry, so each
+-- season's boss fights with its own kit. Damage is capped so a villain's
+-- one-shot ultimate can't instakill players, and player-only types are skipped.
+local function deriveBossMoves(villainName)
+	local kit = CharacterKits and villainName and CharacterKits[villainName]
+	if not kit or not kit.abilities then return nil end
+	local moves = {}
+	for _, slot in ipairs({ "Q", "E", "R", "F" }) do
+		local ab = kit.abilities[slot]
+		if ab and ab.type ~= "beam" and ab.type ~= "construct" then
+			local d = {}
+			for k, v in pairs(ab) do d[k] = v end
+			d.style = d.style or kit.style
+			d.styleKey = d.styleKey or kit.styleKey
+			if d.damage then d.damage = math.min(d.damage, 40) end
+			if d.tickDamage then d.tickDamage = math.min(d.tickDamage, 10) end
+			d.percentDamage = nil    -- never let a boss drain % HP
+			d.lifesteal = nil
+			d.cooldown = nil; d.energy = nil
+			moves[#moves + 1] = d
+		end
+	end
+	return #moves > 0 and moves or nil
 end
 
 -- ---- client channel ----
@@ -135,9 +168,11 @@ local function startStage(i)
 	if stage.boss then
 		activeEnemies = 1
 		setMarker(stage, false)
+		local bossName = Campaign.BossName or (activeSeason and activeSeason.boss) or "Manderin"
 		EnemyFactory.spawnBoss(center + Vector3.new(0, 3, 0), {
-			name = Campaign.BossName, parent = enemyFolder,
+			name = bossName, parent = enemyFolder,
 			abilityEngine = AbilityEngine, onDeath = onEnemyDown,
+			moves = deriveBossMoves(bossName),   -- his own kit; nil = factory default
 		})
 		broadcast("boss")
 	else
@@ -204,9 +239,19 @@ end)
 -------------------------------------------------------------------
 local function begin()
 	if running then return end
-	city = workspace:FindFirstChild("MetroCity")
+	local cityName = Campaign.CityModelName or "MetroCity"
+	city = workspace:FindFirstChild(cityName)
+	-- build the active season's map if it isn't in the place yet
 	if not city then
-		warn("CampaignController: workspace.MetroCity not found — build the map first.")
+		local builderName = Campaign.MapBuilder or (activeSeason and activeSeason.map)
+		local builder = builderName and safeRequire(ServerStorage:FindFirstChild(builderName))
+		if builder then
+			pcall(function() builder.build(workspace) end)
+			city = workspace:FindFirstChild(cityName)
+		end
+	end
+	if not city then
+		warn("CampaignController: '" .. cityName .. "' not found and no builder available — build the map first.")
 		return
 	end
 	enemyFolder = city:FindFirstChild("CampaignEnemies")
@@ -217,7 +262,9 @@ local function begin()
 	end
 	running = true
 	startStage(1)
-	print("CampaignController: Metro City campaign started (" .. #Campaign.Stages .. " stages).")
+	local label = activeSeason and ("Season " .. activeSeason.id .. " — " .. activeSeason.title)
+		or (Campaign.CityName or cityName)
+	print("CampaignController: " .. label .. " started (" .. #Campaign.Stages .. " stages).")
 end
 
 -- send current state to late joiners

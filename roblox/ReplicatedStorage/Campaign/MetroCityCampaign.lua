@@ -24,6 +24,10 @@ local MetroCityCampaign = {}
 
 MetroCityCampaign.CityName = "Metro City"
 MetroCityCampaign.RunBy    = "Manderin"
+-- route-module contract (the CampaignController reads these generically):
+MetroCityCampaign.CityModelName = "MetroCity"   -- workspace child the builder creates
+MetroCityCampaign.MapBuilder    = "MetroCityBuilder"  -- ServerStorage builder ModuleScript
+MetroCityCampaign.Season        = 8
 MetroCityCampaign.Summary  =
 	"A futuristic city of skyscrapers and Manderin Tech — clean, high-secured, " ..
 	"and run under Manderin's order. The campaign fights inward from the streets " ..

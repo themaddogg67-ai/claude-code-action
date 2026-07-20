@@ -119,12 +119,12 @@ drives objectives off the beacons — no positions hard-coded twice.
 
 Beyond the map, four files run the campaign as shared co-op progression:
 
-| File | Studio location | Type |
-| --- | --- | --- |
-| `ServerStorage/EnemyFactory.lua` | `ServerStorage > EnemyFactory` | ModuleScript (new) |
-| `ServerScriptService/CampaignController.server.lua` | `ServerScriptService > CampaignController` | Script (new) |
-| `StarterPlayerScripts/CampaignHud.client.lua` | `StarterPlayer > StarterPlayerScripts > CampaignHud` | LocalScript (new) |
-| `ReplicatedStorage/Campaign/MetroCityCampaign.lua` | (updated — adds per-stage enemy counts) | ModuleScript |
+| File                                                | Studio location                                      | Type               |
+| --------------------------------------------------- | ---------------------------------------------------- | ------------------ |
+| `ServerStorage/EnemyFactory.lua`                    | `ServerStorage > EnemyFactory`                       | ModuleScript (new) |
+| `ServerScriptService/CampaignController.server.lua` | `ServerScriptService > CampaignController`           | Script (new)       |
+| `StarterPlayerScripts/CampaignHud.client.lua`       | `StarterPlayer > StarterPlayerScripts > CampaignHud` | LocalScript (new)  |
+| `ReplicatedStorage/Campaign/MetroCityCampaign.lua`  | (updated — adds per-stage enemy counts)              | ModuleScript       |
 
 **Flow:** each stage spawns Manderin Security guards at that district's beacon →
 players defeat them with their normal abilities → the marker turns green →
@@ -133,8 +133,8 @@ a player reaches it → the checkpoint advances → next stage. The finale spawn
 
 **Enemies use your existing systems, not new ones.** Guards and the boss are
 part-built R6 rigs with real Humanoids, so `AbilityEngine` already damages and
-knocks them around — nothing extra to wire. The boss *casts through the same
-engine*: `AbilityEngine.run(nil, bossChar, def, targetPos)` drives an Aegis
+knocks them around — nothing extra to wire. The boss _casts through the same
+engine_: `AbilityEngine.run(nil, bossChar, def, targetPos)` drives an Aegis
 Slam, Tentacle Lash, Laser Barrage, Force Repulse and Power Nova with full VFX.
 
 **HUD** shows stage x/9, the district, the objective, and live status (enemies
@@ -142,3 +142,30 @@ remaining / "reach the marker" / boss / victory), driven by the auto-created
 `ReplicatedStorage.CampaignEvent`. Everything loads defensively — a missing
 piece warns and no-ops instead of erroring. Tune enemy counts in
 `MetroCityCampaign.Stages` and enemy/boss stats in the `EnemyFactory` calls.
+
+## Multi-season framework (built for more maps)
+
+The campaign is a 30-season saga, so the controller is map-agnostic. Two more
+files make adding a map a data change, not a rewrite:
+
+| File | Studio location | Type |
+| --- | --- | --- |
+| `ReplicatedStorage/Campaign/CampaignRegistry.lua` | `ReplicatedStorage > Campaign > CampaignRegistry` | ModuleScript (new) |
+| `ReplicatedStorage/Campaign/MetroCityCampaign.lua` | (updated — adds `CityModelName` / `MapBuilder` / `Season`) | ModuleScript |
+
+`CampaignRegistry` indexes every season (id, title, boss, summary) and points
+the built ones at their map builder + route module. `ActiveSeason` selects which
+one runs — **Metro City is Season 8** (Manderin's dictatorship). The controller
+reads the active season, builds its map if absent, and runs its route.
+
+**Bosses fight with their real kit.** For each boss the controller derives its
+attacks from `CharacterKits[bossName]` (skipping player-only `beam`/`construct`,
+capping damage, stripping `percentDamage`), so Minus fights as Minus, Null as
+Null, Omega as Omega — every villain already has a kit in the roster.
+
+**To add a season's map:** write a builder in `ServerStorage` (like
+`MetroCityBuilder`) and a route module in `ReplicatedStorage.Campaign` matching
+the `MetroCityCampaign` contract (`Stages`, `getBeacon`, `enableCheckpoint`,
+`EnemyName`, `BossName`, `CityModelName`, `MapBuilder`), then point that season's
+registry entry at them and set `ActiveSeason`. Nothing in the controller,
+enemies, HUD, or boss logic changes.
