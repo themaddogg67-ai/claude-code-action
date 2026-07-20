@@ -70,10 +70,10 @@ text. It executes to ~1,067 parts / ~1,200 instances (validated end-to-end).
 
 ## Where each file goes
 
-| File | Studio location | Script type |
-| --- | --- | --- |
-| `ServerStorage/MetroCityBuilder.lua` | `ServerStorage > MetroCityBuilder` | ModuleScript (new) |
-| `ServerScriptService/BuildMetroCity.server.lua` | `ServerScriptService > BuildMetroCity` | Script (new) |
+| File                                               | Studio location                                    | Script type        |
+| -------------------------------------------------- | -------------------------------------------------- | ------------------ |
+| `ServerStorage/MetroCityBuilder.lua`               | `ServerStorage > MetroCityBuilder`                 | ModuleScript (new) |
+| `ServerScriptService/BuildMetroCity.server.lua`    | `ServerScriptService > BuildMetroCity`             | Script (new)       |
 | `ReplicatedStorage/Campaign/MetroCityCampaign.lua` | `ReplicatedStorage > Campaign > MetroCityCampaign` | ModuleScript (new) |
 
 ## Building the map
