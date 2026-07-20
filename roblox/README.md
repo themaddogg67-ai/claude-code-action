@@ -178,7 +178,7 @@ pure data, no Roblox globals, cheap to require:
 
 - **100 planets** tagged by tier (core/mid/exotic/ultra/god) and **biome**.
 - **26 biomes**, each mapped to a palette hint — `{ material, ground rgb,
-  accent rgb, sky mood }` — so any location becomes a themeable map from data
+accent rgb, sky mood }` — so any location becomes a themeable map from data
   instead of guesswork (`WorldAtlas.biome("volcanic")` → Basalt ground, orange
   accent, ashen sky).
 - **Story locations** the seasons visit (Metro City, Quantum City, Gildonia,
@@ -191,3 +191,33 @@ pure data, no Roblox globals, cheap to require:
 Helpers: `get(name)`, `byBiome(tag)`, `byTier(tier)`, `biome(tag)`,
 `locationForSeason(id)`, `buildableList()`. This is the bridge for the next
 maps: pick a location, read its biome palette, generate.
+
+---
+
+# Quantum City — Season 10 map (proof of the multi-map framework)
+
+The second map, and the proof the framework scales: a digital city floating in
+Blue's loops in space, whose look is **pulled from the WorldAtlas `digital`
+biome** (teal/cyan neon, dark platforms). It plugs into the same controller,
+enemies, HUD, and boss system with zero changes to them.
+
+| File | Studio location | Type |
+| --- | --- | --- |
+| `ServerStorage/QuantumCityBuilder.lua` | `ServerStorage > QuantumCityBuilder` | ModuleScript (new) |
+| `ReplicatedStorage/Campaign/QuantumCityCampaign.lua` | `ReplicatedStorage > Campaign > QuantumCityCampaign` | ModuleScript (new) |
+
+Floating archipelago over the void: a central **Nexus Core** (Blue's loop) with
+radial sector platforms — Docking Ring, Data Market, The Grid, Server Spire,
+Firewall Checkpoint, Loop Gardens, the lower **Undernet**, and the **Anonymous
+Sanctum** — linked by light bridges. ~813 parts. Boss: **The Anonymous**, who
+fights with his real CharacterKits moveset.
+
+**To play it:** set `CampaignRegistry.ActiveSeason = 10`. The controller builds
+`workspace.QuantumCity` and runs the 9-stage route automatically (or bake it:
+`require(game.ServerStorage.QuantumCityBuilder).build(workspace)`). Optionally
+disable `BuildMetroCity` so only the active season's map builds.
+
+Both built maps now: **Season 8 Metro City** (city biome) and **Season 10
+Quantum City** (digital biome). Adding the next one — Gildonia (jungle),
+Valhalla (stone), any of the 100 atlas planets — is a builder + route + a
+registry flip.
