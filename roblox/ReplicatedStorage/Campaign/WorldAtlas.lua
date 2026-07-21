@@ -87,6 +87,9 @@ WorldAtlas.StoryLocations = {
 	{ name = "Ruined City",      kind = "city",     biome = "ruin",    controller = "Omega", season = 7,
 	  mapReady = true, builder = "RuinedCityBuilder", route = "RuinedCityCampaign",
 	  note = "An Earth city devastated as Omega rampages. Season 7 — built." },
+	{ name = "The Swamplands",   kind = "region",   biome = "swamp",   controller = "Minus", season = 1,
+	  mapReady = true, builder = "SwamplandsBuilder", route = "SwamplandsCampaign",
+	  note = "The bayou where the campaign begins; den of Minus, the gator general. Season 1 — built." },
 	{ name = "Valhalla",         kind = "planet",   biome = "stone",   controller = "Valkery", season = nil,
 	  note = "A planet full of Vikings — Valkery's homeworld." },
 	{ name = "Planet Sparta",    kind = "planet",   biome = "desert",  controller = "Ares", season = nil,
@@ -191,6 +194,7 @@ WorldAtlas.WarZones = { "Omnara", "Nexus Omnia", "Infinity Spire", "Parallax", "
 
 -- season id -> canonical location name (drives which map a season builds)
 WorldAtlas.SeasonLocations = {
+	[1] = "The Swamplands",
 	[5] = "Gildonia",
 	[7] = "Ruined City",
 	[8] = "Metro City",

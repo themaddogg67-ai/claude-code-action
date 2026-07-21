@@ -87,10 +87,43 @@ local function flashBanner(text, color)
 	end)
 end
 
+-- ---- boss health bar (bottom center, shown only during a boss fight) ----
+local bossWrap = Instance.new("Frame")
+bossWrap.Size = UDim2.new(0, 620, 0, 54); bossWrap.Position = UDim2.new(0.5, -310, 1, -84)
+bossWrap.BackgroundTransparency = 1; bossWrap.Visible = false; bossWrap.Parent = gui
+local bossName = Instance.new("TextLabel")
+bossName.Size = UDim2.new(1, 0, 0, 20); bossName.BackgroundTransparency = 1
+bossName.Font = Enum.Font.GothamBold; bossName.TextSize = 16; bossName.TextColor3 = Color3.fromRGB(240, 245, 255)
+bossName.Text = ""; bossName.Parent = bossWrap
+local bossBg = Instance.new("Frame")
+bossBg.Size = UDim2.new(1, 0, 0, 22); bossBg.Position = UDim2.new(0, 0, 0, 26)
+bossBg.BackgroundColor3 = Color3.fromRGB(20, 12, 14); bossBg.BorderSizePixel = 0; bossBg.Parent = bossWrap
+local bbc = Instance.new("UICorner"); bbc.CornerRadius = UDim.new(0, 6); bbc.Parent = bossBg
+local bbs = Instance.new("UIStroke"); bbs.Color = Color3.fromRGB(120, 20, 24); bbs.Thickness = 1.5; bbs.Parent = bossBg
+local bossFill = Instance.new("Frame")
+bossFill.Size = UDim2.new(1, 0, 1, 0); bossFill.BackgroundColor3 = Color3.fromRGB(210, 45, 40)
+bossFill.BorderSizePixel = 0; bossFill.Parent = bossBg
+local bfc = Instance.new("UICorner"); bfc.CornerRadius = UDim.new(0, 6); bfc.Parent = bossFill
+local function setBoss(name, frac, enraged)
+	bossWrap.Visible = true
+	bossName.Text = (enraged and "⚠ " or "") .. "★ " .. (name or "Boss") .. (enraged and "  —  ENRAGED" or "")
+	bossName.TextColor3 = enraged and Color3.fromRGB(255, 120, 90) or Color3.fromRGB(240, 245, 255)
+	bossFill.BackgroundColor3 = enraged and Color3.fromRGB(255, 90, 40) or Color3.fromRGB(210, 45, 40)
+	TweenService:Create(bossFill, TweenInfo.new(0.25), { Size = UDim2.new(math.clamp(frac or 0, 0, 1), 0, 1, 0) }):Play()
+end
+
 local lastStage = -1
 
 local function render(data)
-	if not data or not data.stage then return end
+	if not data or not data.stage and data.state ~= "bosshp" then return end
+	if data.state == "bosshp" then
+		setBoss(data.bossName, data.frac, data.enraged)
+		return
+	end
+	if data.state == "victory" or data.state == "bossdown" or data.state == "cleared"
+		or data.state == "fighting" then
+		bossWrap.Visible = false
+	end
 	if data.state == "idle" then
 		title.Text = "Awaiting deployment…"; status.Text = ""; progress.Text = ""
 		return

@@ -228,6 +228,62 @@ function EnemyFactory.spawnGuard(pos, opts)
 end
 
 -------------------------------------------------------------------
+-- RANGED GUARD — keeps its distance and fires projectiles at the nearest player
+-- (uses AbilityEngine for the shot + its VFX; falls back to melee if no engine).
+-- opts: abilityEngine, health, fireCooldown, projectileDamage, holdRange
+-------------------------------------------------------------------
+local RANGED_TRIM = Color3.fromRGB(255, 150, 60)
+function EnemyFactory.spawnRanged(pos, opts)
+	opts = opts or {}
+	local model, hrp, hum = buildRig(opts.name or "Manderin Marksman", pos, 1,
+		Color3.fromRGB(48, 42, 40), RANGED_TRIM, opts.health or 90)
+	hum.WalkSpeed = opts.walkSpeed or 12
+	model.Parent = opts.parent or workspace
+	nameplate(model, hum, opts.name or "Manderin Marksman", RANGED_TRIM)
+	attachDeath(model, hum, opts.onDeath)
+
+	local engine = opts.abilityEngine
+	local aggro = opts.aggro or 220
+	local hold = opts.holdRange or 34         -- preferred distance to the target
+	local backoff = hold - 12                 -- retreat if closer than this
+	local fireCd = 0
+	local pf = Pathfinder and Pathfinder.new(model, hum, hrp)
+	local shot = {
+		type = "projectile", damage = opts.projectileDamage or 8, speed = opts.projectileSpeed or 120,
+		size = Vector3.new(1.6, 1.6, 1.6), knockback = 14, life = 3,
+		style = opts.style or "energy", styleKey = opts.styleKey,
+	}
+
+	task.spawn(function()
+		while model.Parent and hum.Health > 0 do
+			local targetChar, targetRoot, dist = nearestPlayerChar(hrp.Position, aggro)
+			if targetRoot then
+				if dist < backoff then
+					-- kite: step directly away from the target
+					local away = (hrp.Position - targetRoot.Position)
+					away = away.Magnitude > 0 and away.Unit or hrp.CFrame.LookVector
+					hum:MoveTo(hrp.Position + away * 12)
+				elseif dist > hold then
+					if pf then pf:step(targetRoot.Position) else hum:MoveTo(targetRoot.Position) end
+				else
+					hum:MoveTo(hrp.Position)   -- hold and shoot
+				end
+				if os.clock() >= fireCd then
+					fireCd = os.clock() + (opts.fireCooldown or 2)
+					if engine then
+						pcall(function() engine.run(nil, model, shot, targetRoot.Position + Vector3.new(0, 1, 0)) end)
+					else
+						meleePlayer(hrp, targetChar, opts.projectileDamage or 8, 10)   -- no engine: chip damage
+					end
+				end
+			end
+			task.wait(0.35)
+		end
+	end)
+	return model
+end
+
+-------------------------------------------------------------------
 -- BOSS: MANDERIN
 -------------------------------------------------------------------
 -- DEFAULT attack patterns (used when the controller doesn't derive a move set

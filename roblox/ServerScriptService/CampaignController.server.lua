@@ -111,6 +111,23 @@ local function broadcast(state)
 	})
 end
 
+-- stream a boss's health fraction to the boss bar HUD
+local function watchBossHealth(bossModel, bossName)
+	if not bossModel then return end
+	local hum = bossModel:FindFirstChildOfClass("Humanoid")
+	if not hum then return end
+	local function push()
+		event:FireAllClients({
+			state = "bosshp", bossName = bossName,
+			frac = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1),
+			enraged = bossModel:GetAttribute("Enraged") == true,
+		})
+	end
+	push()
+	hum.HealthChanged:Connect(push)
+	bossModel:GetAttributeChangedSignal("Enraged"):Connect(push)
+end
+
 local function clearEnemies()
 	if enemyFolder then enemyFolder:ClearAllChildren() end
 	activeEnemies = 0
@@ -176,12 +193,13 @@ local function startStage(i)
 		if CharacterModelFactory and CharacterModelFactory.has(bossName) then
 			rig = CharacterModelFactory.build(bossName, center + Vector3.new(0, 3, 0), { parent = enemyFolder })
 		end
-		EnemyFactory.spawnBoss(center + Vector3.new(0, 3, 0), {
+		local bossModel = EnemyFactory.spawnBoss(center + Vector3.new(0, 3, 0), {
 			name = bossName, parent = enemyFolder, rig = rig,
 			abilityEngine = AbilityEngine, onDeath = onEnemyDown,
 			moves = deriveBossMoves(bossName),   -- his own kit; nil = factory default
 		})
 		broadcast("boss")
+		watchBossHealth(bossModel, bossName)   -- stream HP to the boss bar
 	else
 		local n = stage.enemies or 3
 		activeEnemies = n
@@ -191,11 +209,20 @@ local function startStage(i)
 			local off = Vector3.new(math.cos(ang), 0, math.sin(ang)) * (14 + (k % 3) * 6)
 			local sp = center + off
 			sp = Vector3.new(sp.X, groundY(sp) + 3, sp.Z)
-			EnemyFactory.spawnGuard(sp, {
-				name = Campaign.EnemyName, parent = enemyFolder,
-				health = 90 + i * 12, meleeDamage = 6 + i, walkSpeed = 14,
-				onDeath = onEnemyDown,
-			})
+			-- every 3rd enemy is a ranged attacker so stages aren't all melee
+			if k % 3 == 0 then
+				EnemyFactory.spawnRanged(sp, {
+					name = Campaign.EnemyName .. " (Ranged)", parent = enemyFolder,
+					health = 70 + i * 8, projectileDamage = 6 + i, abilityEngine = AbilityEngine,
+					onDeath = onEnemyDown,
+				})
+			else
+				EnemyFactory.spawnGuard(sp, {
+					name = Campaign.EnemyName, parent = enemyFolder,
+					health = 90 + i * 12, meleeDamage = 6 + i, walkSpeed = 14,
+					onDeath = onEnemyDown,
+				})
+			end
 		end
 		broadcast("fighting")
 	end

@@ -301,11 +301,35 @@ Toppled skyscrapers, wrecked cars, craters, fire and smoke across 6 sectors
 (Evacuation Zone → Broken Streets → Collapsed Plaza → Burning District → The
 Barricade → Ground Zero), ending against Omega with his themed model + phase-two.
 
-| File | Studio location | Type |
-| --- | --- | --- |
-| `ServerStorage/Pathfinder.lua` | `ServerStorage > Pathfinder` | ModuleScript (new) |
-| `ServerStorage/RuinedCityBuilder.lua` | `ServerStorage > RuinedCityBuilder` | ModuleScript (new) |
+| File                                                | Studio location                                     | Type               |
+| --------------------------------------------------- | --------------------------------------------------- | ------------------ |
+| `ServerStorage/Pathfinder.lua`                      | `ServerStorage > Pathfinder`                        | ModuleScript (new) |
+| `ServerStorage/RuinedCityBuilder.lua`               | `ServerStorage > RuinedCityBuilder`                 | ModuleScript (new) |
 | `ReplicatedStorage/Campaign/RuinedCityCampaign.lua` | `ReplicatedStorage > Campaign > RuinedCityCampaign` | ModuleScript (new) |
 
 **Built maps: Season 5 Gildonia, Season 7 Ruined City, Season 8 Metro City,
 Season 10 Quantum City.** Set `CampaignRegistry.ActiveSeason` to pick one.
+
+## Ranged enemies, boss health bar, and the Swamplands (Season 1)
+
+- **Ranged attackers** — `EnemyFactory.spawnRanged` builds a marksman that keeps
+  its distance (kites when you close in) and fires AbilityEngine projectiles at
+  you. The controller now makes **every 3rd stage enemy ranged**, so stages mix
+  melee and ranged pressure.
+- **Boss health bar** — the controller streams the active boss's HP to the HUD;
+  `CampaignHud` shows a bottom-center boss bar (name + fraction) that turns
+  orange and reads **ENRAGED** when phase-two triggers. It hides on non-boss
+  stages and on victory.
+- **The Swamplands — Season 1 ("Rise of Minus")** — a bayou where the campaign
+  begins, from the WorldAtlas `swamp` biome: murky water, mangroves with prop
+  roots, stilt villages, a poison marsh, Minus's war camp, and the **Gator's Den**
+  boss lair. 6 sectors, ends against **Minus** (themed model + phase-two).
+
+| File | Studio location | Type |
+| --- | --- | --- |
+| `ServerStorage/SwamplandsBuilder.lua` | `ServerStorage > SwamplandsBuilder` | ModuleScript (new) |
+| `ReplicatedStorage/Campaign/SwamplandsCampaign.lua` | `ReplicatedStorage > Campaign > SwamplandsCampaign` | ModuleScript (new) |
+
+**Built maps (5, one per biome):** Season 1 Swamplands (swamp), Season 5
+Gildonia (jungle), Season 7 Ruined City (ruin), Season 8 Metro City (city),
+Season 10 Quantum City (digital). Set `CampaignRegistry.ActiveSeason` to pick.

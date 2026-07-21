@@ -25,8 +25,9 @@ local CampaignRegistry = {}
 CampaignRegistry.ActiveSeason = 8   -- Metro City (Manderin) is the built map
 
 CampaignRegistry.Seasons = {
-	{ id = 1,  title = "Rise of Minus",         boss = "Minus",         status = "planned",
-	  summary = "Mid-tier villains all leading up to Minus and his army." },
+	{ id = 1,  title = "Rise of Minus",         boss = "Minus",         status = "built",
+	  map = "SwamplandsBuilder", route = "SwamplandsCampaign",
+	  summary = "Mid-tier villains in the bayou Swamplands, all leading up to Minus and his army." },
 	{ id = 2,  title = "The Army Attacks",      boss = "Minus",         status = "planned",
 	  summary = "Minus's army attacks; the Warriors of the World and Looney take him down." },
 	{ id = 3,  title = "Orders From Above",     boss = "Null",          status = "planned",
