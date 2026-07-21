@@ -84,6 +84,9 @@ WorldAtlas.StoryLocations = {
 	{ name = "Gildonia",         kind = "planet",   biome = "jungle",  controller = nil, season = 5,
 	  mapReady = true, builder = "GildoniaBuilder", route = "GildoniaCampaign",
 	  note = "Undeveloped civilizations. The disastrous battle planet where the Warriors fall. Season 5 — built." },
+	{ name = "Ruined City",      kind = "city",     biome = "ruin",    controller = "Omega", season = 7,
+	  mapReady = true, builder = "RuinedCityBuilder", route = "RuinedCityCampaign",
+	  note = "An Earth city devastated as Omega rampages. Season 7 — built." },
 	{ name = "Valhalla",         kind = "planet",   biome = "stone",   controller = "Valkery", season = nil,
 	  note = "A planet full of Vikings — Valkery's homeworld." },
 	{ name = "Planet Sparta",    kind = "planet",   biome = "desert",  controller = "Ares", season = nil,
@@ -189,6 +192,7 @@ WorldAtlas.WarZones = { "Omnara", "Nexus Omnia", "Infinity Spire", "Parallax", "
 -- season id -> canonical location name (drives which map a season builds)
 WorldAtlas.SeasonLocations = {
 	[5] = "Gildonia",
+	[7] = "Ruined City",
 	[8] = "Metro City",
 	[10] = "Quantum City",
 	[11] = "Quantum City",

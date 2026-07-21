@@ -282,3 +282,30 @@ Model additions this pass: **Leon** and **Chasm** (starting heroes), **Old Man
 Omega** (normal Omega greyed with a beard — new `beard` feature), and **Carnage**
 (modeled from his _description_ — metallic blood-red "god of fear" with horns via
 the new `horns` feature — not an image). 43 characters modeled total.
+
+## Enemy pathfinding
+
+`Pathfinder` (`ServerStorage`, ModuleScript) wraps `PathfindingService` so
+campaign NPCs route around walls and rubble instead of beelining. `EnemyFactory`
+loads it defensively — guards and the boss each get a `Pathfinder` that follows
+the target along computed waypoints (recomputing only when the target drifts or
+the path goes stale), and falls back to direct `MoveTo` when no route exists
+(e.g. across gaps on the floating Quantum City platforms). Put `Pathfinder` in
+`ServerStorage` next to `EnemyFactory`.
+
+## Ruined City — Season 7 map ("Omega's Chaos")
+
+Fourth built map: a devastated Earth city where **Omega** rampages, from the
+WorldAtlas `ruin` biome (ash concrete, ember accents, red doomsday glow).
+Toppled skyscrapers, wrecked cars, craters, fire and smoke across 6 sectors
+(Evacuation Zone → Broken Streets → Collapsed Plaza → Burning District → The
+Barricade → Ground Zero), ending against Omega with his themed model + phase-two.
+
+| File | Studio location | Type |
+| --- | --- | --- |
+| `ServerStorage/Pathfinder.lua` | `ServerStorage > Pathfinder` | ModuleScript (new) |
+| `ServerStorage/RuinedCityBuilder.lua` | `ServerStorage > RuinedCityBuilder` | ModuleScript (new) |
+| `ReplicatedStorage/Campaign/RuinedCityCampaign.lua` | `ReplicatedStorage > Campaign > RuinedCityCampaign` | ModuleScript (new) |
+
+**Built maps: Season 5 Gildonia, Season 7 Ruined City, Season 8 Metro City,
+Season 10 Quantum City.** Set `CampaignRegistry.ActiveSeason` to pick one.

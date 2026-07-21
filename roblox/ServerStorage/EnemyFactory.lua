@@ -28,6 +28,13 @@
 local Players = game:GetService("Players")
 local Debris  = game:GetService("Debris")
 
+-- Pathfinding wrapper (optional — NPCs fall back to direct MoveTo if absent)
+local Pathfinder
+do
+	local ok, m = pcall(function() return require(script.Parent:FindFirstChild("Pathfinder")) end)
+	Pathfinder = ok and m or nil
+end
+
 local EnemyFactory = {}
 
 local GUARD_COLOR = Color3.fromRGB(40, 44, 54)
@@ -202,11 +209,12 @@ function EnemyFactory.spawnGuard(pos, opts)
 	local meleeCd = 0
 	local aggro = opts.aggro or 140
 	local meleeRange = opts.meleeRange or 6.5
+	local pf = Pathfinder and Pathfinder.new(model, hum, hrp)
 	task.spawn(function()
 		while model.Parent and hum.Health > 0 do
 			local _, targetRoot, dist = nearestPlayerChar(hrp.Position, aggro)
 			if targetRoot then
-				hum:MoveTo(targetRoot.Position)
+				if pf then pf:step(targetRoot.Position) else hum:MoveTo(targetRoot.Position) end
 				if dist <= meleeRange and os.clock() >= meleeCd then
 					meleeCd = os.clock() + (opts.meleeCooldown or 1.1)
 					local tchar = targetRoot.Parent
@@ -323,11 +331,12 @@ function EnemyFactory.spawnBoss(pos, opts)
 		if not enraged and h > 0 and h / hum.MaxHealth <= 0.5 then enrage() end
 	end)
 
+	local pf = Pathfinder and Pathfinder.new(model, hum, hrp, { agentRadius = 4, agentHeight = 7 })
 	task.spawn(function()
 		while model.Parent and hum.Health > 0 do
 			local _, targetRoot, dist = nearestPlayerChar(hrp.Position, aggro)
 			if targetRoot then
-				hum:MoveTo(targetRoot.Position)
+				if pf then pf:step(targetRoot.Position) else hum:MoveTo(targetRoot.Position) end
 				-- melee when close
 				if dist <= meleeRange and os.clock() >= meleeCd then
 					meleeCd = os.clock() + (enraged and 0.85 or 1.2)
