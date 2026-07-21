@@ -222,6 +222,7 @@ M["Punisher"]      = { body = { 22, 20, 24 }, limbs = { 34, 30, 34 }, eyes = { 2
 M["2z"]            = { body = { 170, 34, 38 }, limbs = { 40, 60, 150 }, tentacles = 4, tentacleColor = { 30, 30, 34 }, tentacleTip = { 200, 40, 44 }, eyes = { 240, 245, 255 }, aura = "electric" }
 M["Cockroach"]     = { body = { 46, 36, 28 }, limbs = { 38, 30, 22 }, horns = { 30, 24, 18 }, eyes = { 235, 60, 50 } }
 M["Juggernaut"]    = { scale = 1.25, body = { 30, 32, 40 }, limbs = { 44, 46, 54 }, horns = { 26, 28, 34 }, eyes = { 90, 180, 255 } }
+M["Bulldozer"]     = { scale = 1.15, body = { 96, 100, 108 }, limbs = { 74, 78, 88 }, material = "Metal", eyeStyle = "visor", eyes = { 90, 180, 255 }, aura = "energy", auraColor = { 120, 190, 255 } }
 M["Scrapatron"]    = { scale = 1.3, body = { 70, 78, 66 }, limbs = { 58, 64, 54 }, material = "Metal", aura = "green", eyes = { 120, 255, 120 } }
 M["Celcius"]       = { body = { 150, 205, 240 }, limbs = { 130, 190, 230 }, skin = { 210, 235, 250 }, hair = { 240, 248, 255 }, aura = "ice", eyes = { 170, 235, 255 } }
 M["Fahrenheit"]    = { body = { 40, 20, 18 }, limbs = { 130, 40, 22 }, aura = "fire", eyes = { 255, 130, 50 } }

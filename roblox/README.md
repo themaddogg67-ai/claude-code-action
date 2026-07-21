@@ -368,3 +368,18 @@ moveset + themed model and get phase-two enrage but summon no adds. The HUD
 flashes a gold "MINI-BOSS — <name>" banner. **Season 1's mini-boss is El Primo
 Libre** (gold-masked wrestler drug-lord) at the Sunken Village. Add one to any
 stage: `miniBoss = "<CharacterKits name>", miniBossHealth = 1100`.
+
+## Hero / Villain faction choice
+
+The campaign menu now adds a **Pick Your Side** step (Season → Faction →
+Character), for both solo and multiplayer campaign:
+
+- **Heroes:** Looney, Leon, Chasm, Frost, Water Woman — at full strength.
+- **Villains:** Bulldozer, Reddon, Erik, Toxic — **starting at their weakest**
+  (a persistent `ArmorDamageMult = 0.6`, i.e. 40% weaker attacks, applied by
+  `CharacterSelect`; raise it as they progress).
+
+Picking sets `CharacterName` (kit), `Faction`, and the weakness attribute, then
+skins the avatar to the chosen character. Both faction rosters have kits and
+themed models. Edit `HERO_STARTERS` / `VILLAIN_STARTERS` / `VILLAIN_WEAK` in
+`CharacterSelect` to change the lineups or the villain penalty.

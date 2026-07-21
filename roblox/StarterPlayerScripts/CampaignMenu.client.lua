@@ -33,6 +33,8 @@ local TINT = {
 	Looney = Color3.fromRGB(240, 200, 60), Leon = Color3.fromRGB(255, 200, 120),
 	Chasm = Color3.fromRGB(60, 170, 255), Frost = Color3.fromRGB(150, 220, 255),
 	["Water Woman"] = Color3.fromRGB(60, 150, 235),
+	Bulldozer = Color3.fromRGB(170, 150, 120), Reddon = Color3.fromRGB(230, 70, 70),
+	Erik = Color3.fromRGB(160, 90, 255), Toxic = Color3.fromRGB(120, 220, 90),
 }
 local CHAR_BLURB = {
 	Looney = "Rubber & toon force — slingshot, gatling arms, stunning finger gun.",
@@ -40,10 +42,15 @@ local CHAR_BLURB = {
 	Chasm = "Kinetic energy balls that grow, rifts, and an untouchable state.",
 	Frost = "Ice beam that slows then freezes, ice balls, a shattering ward.",
 	["Water Woman"] = "Water beam, water spheres, a tide ward, lashing tentacles.",
+	Bulldozer = "Stolen dozer armor — plow charge, guard, crushing slam.",
+	Reddon = "Red speedster — baton rush & flurry, regeneration, cyclone.",
+	Erik = "Gravity control — pull, crush, gravity well, and repulse.",
+	Toxic = "Poison mastery — acid spray, toxic clouds, corrosive nova.",
 }
 
-local seasonsData, roster = nil, nil
-local chosenSeason = nil
+local seasonsData, rosters = nil, nil
+local chosenSeason, chosenFaction = nil, nil
+local renderCharacters   -- forward declaration (used by the faction buttons)
 
 -- ---------------- UI scaffold ----------------
 local gui = Instance.new("ScreenGui")
@@ -67,10 +74,12 @@ local function stroke(inst, col, t) local s = Instance.new("UIStroke"); s.Color 
 -- panels
 local mainP = Instance.new("Frame"); mainP.Size = UDim2.fromScale(1, 1); mainP.BackgroundTransparency = 1; mainP.Parent = dim
 local seasonP = Instance.new("Frame"); seasonP.Size = UDim2.fromScale(1, 1); seasonP.BackgroundTransparency = 1; seasonP.Visible = false; seasonP.Parent = dim
+local factionP = Instance.new("Frame"); factionP.Size = UDim2.fromScale(1, 1); factionP.BackgroundTransparency = 1; factionP.Visible = false; factionP.Parent = dim
 local charP = Instance.new("Frame"); charP.Size = UDim2.fromScale(1, 1); charP.BackgroundTransparency = 1; charP.Visible = false; charP.Parent = dim
 
 local function show(panel)
-	mainP.Visible = (panel == mainP); seasonP.Visible = (panel == seasonP); charP.Visible = (panel == charP)
+	mainP.Visible = (panel == mainP); seasonP.Visible = (panel == seasonP)
+	factionP.Visible = (panel == factionP); charP.Visible = (panel == charP)
 	gui.Enabled = true
 end
 
@@ -127,7 +136,7 @@ local function renderSeasons(data)
 		if playable then
 			card.MouseEnter:Connect(function() TweenService:Create(st, TweenInfo.new(0.12), { Transparency = 0 }):Play() end)
 			card.MouseLeave:Connect(function() TweenService:Create(st, TweenInfo.new(0.12), { Transparency = 0.35 }):Play() end)
-			card.Activated:Connect(function() chosenSeason = s.id; show(charP) end)
+			card.Activated:Connect(function() chosenSeason = s.id; show(factionP) end)
 		end
 	end
 	-- a "coming soon" card if planned seasons exist
@@ -142,8 +151,37 @@ local function renderSeasons(data)
 	end
 end
 
+-- ---------------- FACTION SELECT ----------------
+label(factionP, "PICK YOUR SIDE", 26, INK, 0, Enum.Font.GothamBlack).Position = UDim2.new(0, 0, 0.14, 0)
+label(factionP, "Play the campaign as a hero — or as a villain.", 15, MUTED, 0, Enum.Font.Gotham).Position = UDim2.new(0, 0, 0.14, 34)
+local function factionButton(text, sub, col, xoff, faction)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(0, 300, 0, 200); b.Position = UDim2.new(0.5, xoff, 0.5, -80); b.AutoButtonColor = false
+	b.BackgroundColor3 = PANEL; b.Text = ""; b.Parent = factionP
+	corner(b, 14); local st = stroke(b, col, 0.35)
+	local t = label(b, text, 30, col, 46, Enum.Font.GothamBlack)
+	local s = Instance.new("TextLabel")
+	s.Size = UDim2.new(1, -24, 0, 60); s.Position = UDim2.new(0, 12, 0, 110); s.BackgroundTransparency = 1
+	s.Font = Enum.Font.Gotham; s.TextSize = 14; s.TextColor3 = MUTED; s.TextWrapped = true; s.Text = sub; s.Parent = b
+	b.MouseEnter:Connect(function() TweenService:Create(st, TweenInfo.new(0.12), { Transparency = 0 }):Play() end)
+	b.MouseLeave:Connect(function() TweenService:Create(st, TweenInfo.new(0.12), { Transparency = 0.35 }):Play() end)
+	b.Activated:Connect(function()
+		chosenFaction = faction
+		renderCharacters(faction)
+		show(charP)
+	end)
+	return b
+end
+factionButton("HEROES", "Looney, Leon, Chasm, Frost, Water Woman — at full strength.", Color3.fromRGB(80, 170, 255), -320, "hero")
+factionButton("VILLAINS", "Bulldozer, Reddon, Erik, Toxic — starting at their weakest.", Color3.fromRGB(200, 70, 70), 20, "villain")
+local fBack = Instance.new("TextButton")
+fBack.Size = UDim2.new(0, 120, 0, 34); fBack.Position = UDim2.new(0.5, -60, 1, -70); fBack.BackgroundColor3 = PANEL
+fBack.Text = "◀ Back"; fBack.Font = Enum.Font.GothamBold; fBack.TextSize = 15; fBack.TextColor3 = MUTED; fBack.Parent = factionP
+corner(fBack, 8); fBack.Activated:Connect(function() show(seasonP) end)
+
 -- ---------------- CHARACTER SELECT ----------------
-label(charP, "CHOOSE YOUR HERO", 26, INK, 0, Enum.Font.GothamBlack).Position = UDim2.new(0, 0, 0.12, 0)
+local charTitle = label(charP, "CHOOSE YOUR HERO", 26, INK, 0, Enum.Font.GothamBlack)
+charTitle.Position = UDim2.new(0, 0, 0.12, 0)
 label(charP, "Your pick sets your look and your abilities.", 15, MUTED, 0, Enum.Font.Gotham).Position = UDim2.new(0, 0, 0.12, 34)
 local charRow = Instance.new("Frame")
 charRow.Size = UDim2.new(0, 1000, 0, 280); charRow.Position = UDim2.new(0.5, -500, 0.5, -100); charRow.BackgroundTransparency = 1; charRow.Parent = charP
@@ -155,11 +193,13 @@ cBack.Size = UDim2.new(0, 120, 0, 34); cBack.Position = UDim2.new(0.5, -60, 1, -
 cBack.Text = "◀ Back"; cBack.Font = Enum.Font.GothamBold; cBack.TextSize = 15; cBack.TextColor3 = MUTED; cBack.Parent = charP
 corner(cBack, 8); cBack.Activated:Connect(function() show(seasonP) end)
 
-local charBuilt = false
-local function renderCharacters()
-	if charBuilt or not roster then return end
-	charBuilt = true
-	for _, name in ipairs(roster) do
+function renderCharacters(faction)
+	if not rosters then return end
+	local list = (faction == "villain") and rosters.villains or rosters.heroes
+	if not list then return end
+	charTitle.Text = (faction == "villain") and "CHOOSE YOUR VILLAIN" or "CHOOSE YOUR HERO"
+	for _, ch in ipairs(charRow:GetChildren()) do if ch:IsA("GuiObject") then ch:Destroy() end end
+	for _, name in ipairs(list) do
 		local tint = TINT[name] or ACCENT
 		local card = Instance.new("TextButton")
 		card.Size = UDim2.new(0, 184, 0, 250); card.AutoButtonColor = false; card.BackgroundColor3 = PANEL; card.Text = ""; card.Parent = charRow
@@ -178,8 +218,8 @@ local function renderCharacters()
 		card.MouseEnter:Connect(function() TweenService:Create(st, TweenInfo.new(0.12), { Transparency = 0 }):Play() end)
 		card.MouseLeave:Connect(function() TweenService:Create(st, TweenInfo.new(0.12), { Transparency = 0.4 }):Play() end)
 		card.Activated:Connect(function()
-			if charEvent then charEvent:FireServer(name) end                 -- morph + set kit
-			menuEvent:FireServer("start", { seasonId = chosenSeason, character = name })
+			if charEvent then charEvent:FireServer({ name = name, faction = chosenFaction }) end   -- morph + kit + faction
+			menuEvent:FireServer("start", { seasonId = chosenSeason, character = name, faction = chosenFaction })
 			gui.Enabled = false
 		end)
 	end
@@ -194,7 +234,7 @@ local function seasonComplete()
 	btn.Text = "RETURN TO MENU"; btn.Font = Enum.Font.GothamBold; btn.TextSize = 20; btn.TextColor3 = Color3.fromRGB(20, 16, 8); btn.Parent = gui
 	corner(btn, 10)
 	gui.Enabled = true
-	btn.Activated:Connect(function() ov:Destroy(); btn:Destroy(); charBuilt = false; show(mainP) end)
+	btn.Activated:Connect(function() ov:Destroy(); btn:Destroy(); show(mainP) end)
 end
 
 -- ---------------- wiring ----------------
@@ -207,7 +247,7 @@ menuEvent.OnClientEvent:Connect(function(kind, data)
 end)
 if charEvent then
 	charEvent.OnClientEvent:Connect(function(kind, data)
-		if kind == "list" then roster = data; renderCharacters() end
+		if kind == "rosters" then rosters = data end
 	end)
 end
 -- listen for victory (from CampaignHud's CampaignEvent) to offer return-to-menu

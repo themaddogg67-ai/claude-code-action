@@ -2,28 +2,31 @@
 	CharacterSelect  (Script)
 	WHERE IT GOES: ServerScriptService > CharacterSelect
 
-	Lets a player pick a starting character for the campaign. On pick, the player
-	spawns AS that character: their avatar is skinned with the character's themed
-	look (CharacterModelFactory.applyTo) and their CharacterName attribute is set
-	so the ability system uses that character's CharacterKit. The pick sticks
-	across respawns.
+	Applies the player's chosen FACTION (Hero or Villain) + character: it sets
+	CharacterName (so the ability system uses that kit), skins the avatar with
+	the character's themed look (CharacterModelFactory.applyTo), and — for the
+	starting VILLAINS — applies an "at their weakest" damage penalty via the
+	ArmorDamageMult attribute the ability system already reads. Works for solo
+	and multiplayer campaign alike. The pick sticks across respawns.
 
-	Movement/camera are never disrupted — we skin the player's real character
-	rather than replacing the rig.
+	Rosters (must match CharacterKits + CharacterModels keys):
+	  Heroes:   Looney, Leon, Chasm, Frost, Water Woman
+	  Villains: Bulldozer, Reddon, Erik, Toxic   (start weakened)
 
 	Protocol (auto-created ReplicatedStorage.CharacterSelectEvent RemoteEvent):
-	  server -> client "list"  { "Looney", "Leon", ... }   (offered on join)
-	  client -> server <name>  (the player's choice)
-	  server -> client "chosen" <name>                     (confirm)
+	  server -> client "rosters" { heroes = {...}, villains = {...} }   (on join)
+	  client -> server { name = "Erik", faction = "villain" }           (the pick)
+	  server -> client "chosen" <name>                                  (confirm)
 ]]
 
 local Players           = game:GetService("Players")
 local ServerStorage     = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- the campaign's starting roster (must match CharacterKits + CharacterModels keys)
-local STARTERS = { "Looney", "Leon", "Chasm", "Frost", "Water Woman" }
-local DEFAULT  = "Looney"
+local HERO_STARTERS    = { "Looney", "Leon", "Chasm", "Frost", "Water Woman" }
+local VILLAIN_STARTERS = { "Bulldozer", "Reddon", "Erik", "Toxic" }
+local DEFAULT_HERO     = "Looney"
+local VILLAIN_WEAK     = 0.6   -- starting villains deal 60% damage ("at their weakest")
 
 local function safeRequire(inst)
 	if not inst then return nil end
@@ -39,19 +42,26 @@ if not event then
 	event.Parent = ReplicatedStorage
 end
 
-local chosen = {}   -- player -> character name
+local chosen = {}   -- player -> { character = name, faction = "hero"|"villain" }
 
-local function isAllowed(name)
-	for _, n in ipairs(STARTERS) do if n == name then return true end end
+local function inList(list, name)
+	for _, n in ipairs(list) do if n == name then return true end end
 	return false
 end
+local function rosterFor(faction) return (faction == "villain") and VILLAIN_STARTERS or HERO_STARTERS end
+local function isAllowed(name, faction) return inList(rosterFor(faction), name) end
 
--- apply the chosen character to a live character model
+-- set attributes + skin the live character to the chosen faction/character
 local function skin(player, character)
-	local name = chosen[player] or DEFAULT
-	player:SetAttribute("CharacterName", name)   -- the ability system reads this
+	local pick = chosen[player]
+	local name = (pick and pick.character) or DEFAULT_HERO
+	local faction = (pick and pick.faction) or "hero"
+	player:SetAttribute("CharacterName", name)             -- ability kit
+	player:SetAttribute("Faction", faction)
+	-- villain "at their weakest": a persistent outgoing-damage multiplier the
+	-- ability system multiplies in (separate from buff-driven DamageMult).
+	player:SetAttribute("ArmorDamageMult", (faction == "villain") and VILLAIN_WEAK or 1)
 	if Factory then
-		-- the character may still be assembling; wait for the core parts
 		character:WaitForChild("HumanoidRootPart", 5)
 		character:WaitForChild("Head", 5)
 		pcall(function() Factory.applyTo(character, name) end)
@@ -61,27 +71,29 @@ end
 local function onCharacter(player, character)
 	task.defer(skin, player, character)
 end
-
 local function setup(player)
 	player.CharacterAdded:Connect(function(char) onCharacter(player, char) end)
 	if player.Character then onCharacter(player, player.Character) end
-	-- offer the roster to the client
-	task.defer(function() event:FireClient(player, "list", STARTERS) end)
+	task.defer(function() event:FireClient(player, "rosters", { heroes = HERO_STARTERS, villains = VILLAIN_STARTERS }) end)
 end
 
-event.OnServerEvent:Connect(function(player, choice)
-	if type(choice) ~= "string" or not isAllowed(choice) then return end
-	chosen[player] = choice
-	player:SetAttribute("CharacterName", choice)
-	event:FireClient(player, "chosen", choice)
-	-- re-skin immediately (respawn also re-applies via CharacterAdded)
+event.OnServerEvent:Connect(function(player, payload)
+	local name, faction
+	if type(payload) == "table" then
+		name = payload.name; faction = payload.faction
+	elseif type(payload) == "string" then
+		name = payload; faction = "hero"
+	end
+	if type(name) ~= "string" then return end
+	faction = (faction == "villain") and "villain" or "hero"
+	if not isAllowed(name, faction) then return end
+
+	chosen[player] = { character = name, faction = faction }
+	event:FireClient(player, "chosen", name)
+
 	if player.Character then
 		local hum = player.Character:FindFirstChildOfClass("Humanoid")
-		if hum and hum.Health > 0 then
-			skin(player, player.Character)
-		else
-			player:LoadCharacter()
-		end
+		if hum and hum.Health > 0 then skin(player, player.Character) else player:LoadCharacter() end
 	else
 		player:LoadCharacter()
 	end
