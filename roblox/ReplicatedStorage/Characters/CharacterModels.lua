@@ -63,6 +63,14 @@ M["Ice Man"] = { body = { 170, 215, 245 }, limbs = { 150, 200, 235 }, skin = { 2
 M["Water Woman"] = { body = { 30, 110, 200 }, limbs = { 26, 96, 180 }, skin = { 90, 60, 46 },
 	hair = { 30, 40, 70 }, aura = "energy", auraColor = { 90, 180, 255 }, eyes = { 120, 210, 255 } }
 
+-- Chasm — teen energy manipulator: blue kinetic energy, spiky blue-tinted hair
+M["Chasm"] = { body = { 24, 34, 54 }, limbs = { 30, 44, 70 }, skin = { 215, 180, 150 },
+	hair = { 40, 90, 200 }, aura = "energy", auraColor = { 60, 170, 255 }, eyes = { 120, 200, 255 } }
+
+-- Leon — ruler's mastery, half-demon, master armor: dark suit, red/gold accents
+M["Leon"] = { body = { 22, 22, 28 }, limbs = { 120, 30, 34 }, skin = { 210, 172, 146 },
+	hair = { 18, 16, 20 }, aura = "cosmic", auraColor = { 255, 200, 120 }, eyes = { 255, 210, 120 } }
+
 M["Dead Dash"] = { body = { 22, 22, 28 }, limbs = { 18, 18, 24 }, skin = { 22, 22, 28 },
 	eyes = { 240, 245, 255 }, aura = "electric", emblem = { text = "⚡", color = { 240, 245, 255 }, plate = { 30, 30, 38 } } }
 
@@ -139,6 +147,17 @@ M["Null"] = { scale = 1.55, body = { 14, 14, 20 }, limbs = { 12, 12, 18 },
 M["Omega"] = { scale = 1.6, body = { 18, 18, 24 }, limbs = { 16, 16, 22 }, skin = { 205, 170, 148 },
 	hair = { 16, 14, 18 }, cape = { 14, 14, 20 }, eyes = { 240, 245, 255 }, aura = "cosmic",
 	emblem = { text = "Ω", color = { 235, 60, 50 }, plate = { 18, 18, 24 } }, health = 3000 }
+
+-- Old Man Omega — normal Omega but greyed with a beard (strongest variant)
+M["Old Man Omega"] = { scale = 1.6, body = { 18, 18, 24 }, limbs = { 16, 16, 22 }, skin = { 200, 168, 148 },
+	hair = { 180, 182, 188 }, beard = { 190, 192, 198 }, cape = { 14, 14, 20 }, eyes = { 240, 245, 255 },
+	aura = "cosmic", emblem = { text = "Ω", color = { 235, 60, 50 }, plate = { 18, 18, 24 } }, health = 3400 }
+
+-- Carnage — modeled from DESCRIPTION (no clear reference): "god of fear",
+-- metallic blood-red alien with horns, sharp teeth, claws and a fear aura
+M["Carnage"] = { scale = 1.5, body = { 120, 20, 26 }, limbs = { 96, 16, 22 }, skin = { 110, 18, 22 },
+	material = "Metal", horns = { 60, 12, 16 }, eyes = { 255, 60, 50 }, cape = { 70, 12, 18 },
+	aura = "void", auraColor = { 200, 30, 50 }, health = 2400 }
 
 M["Armageddon"] = { scale = 1.75, body = { 16, 16, 20 }, limbs = { 120, 96, 40 }, material = "Metal",
 	eyes = { 235, 50, 40 }, eyeStyle = "dual", cape = { 12, 12, 16 }, aura = "void", auraColor = { 200, 60, 60 },

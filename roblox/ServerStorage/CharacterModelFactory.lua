@@ -73,6 +73,26 @@ local function addHair(model, head, spec, s)
 	end
 end
 
+local function addBeard(model, head, spec, s)
+	local col = C(spec.beard) or C(spec.hair) or Color3.fromRGB(70, 58, 48)
+	local jaw = limb(model, "Beard", Vector3.new(1.25, 0.75, 1.3) * s, col, Enum.Material.SmoothPlastic)
+	jaw.CanCollide = false
+	jaw.CFrame = head.CFrame * CFrame.new(0, -0.5 * s, -0.12 * s); weld(jaw, head)
+	local chin = limb(model, "Beard", Vector3.new(0.95, 0.55, 0.55) * s, col, Enum.Material.SmoothPlastic)
+	chin.CanCollide = false
+	chin.CFrame = head.CFrame * CFrame.new(0, -0.78 * s, -0.5 * s); weld(chin, head)
+end
+
+local function addHorns(model, head, spec, s)
+	local col = C(spec.horns) or Color3.fromRGB(40, 36, 40)
+	for _, side in ipairs({ -1, 1 }) do
+		local horn = limb(model, "Horn", Vector3.new(0.4, 1.6, 0.4) * s, col, Enum.Material.SmoothPlastic)
+		horn.CanCollide = false
+		horn.CFrame = head.CFrame * CFrame.new(side * 0.55 * s, 0.7 * s, 0.1 * s) * CFrame.Angles(math.rad(-20), 0, math.rad(side * 30))
+		weld(horn, head)
+	end
+end
+
 local function addHood(model, head, spec, s)
 	local col = C(spec.hood)
 	local cowl = limb(model, "Hood", Vector3.new(1.7, 1.7, 1.7) * s, col, Enum.Material.SmoothPlastic)
@@ -235,6 +255,8 @@ function CharacterModelFactory.build(nameOrSpec, position, opts)
 		head = limb(model, "Head", Vector3.new(1.35, 1.35, 1.35) * s, skin, mat)
 		head.CFrame = hrp.CFrame * CFrame.new(0, 1.7 * s, 0); weld(head, hrp)
 		if spec.hair then addHair(model, head, spec, s) end
+		if spec.beard then addBeard(model, head, spec, s) end
+		if spec.horns then addHorns(model, head, spec, s) end
 		if spec.hood then addHood(model, head, spec, s) end
 		if spec.eyes then addEyes(model, head, spec, s) end
 	end
@@ -277,6 +299,75 @@ end
 -- has a themed spec for this name?
 function CharacterModelFactory.has(name)
 	return Models[name] ~= nil
+end
+
+-------------------------------------------------------------------
+-- MORPH A LIVE PLAYER CHARACTER into a themed look (R6 or R15).
+-- Keeps the player's real Humanoid/HumanoidRootPart, so movement, camera and
+-- animation are untouched — it recolors the body and welds on the character's
+-- accessories (hair/hood/eyes/beard/horns/cape/tentacles/emblem/aura). Safe to
+-- re-apply: it strips a previous morph first. Returns true on success.
+-------------------------------------------------------------------
+function CharacterModelFactory.applyTo(character, nameOrSpec)
+	if not character then return false end
+	local spec = resolveSpec(nameOrSpec) or {}
+	local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+	local head = character:FindFirstChild("Head")
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	local hum = character:FindFirstChildOfClass("Humanoid")
+	if not torso or not head or not hrp then return false end
+
+	local body = C(spec.body) or Color3.fromRGB(60, 64, 74)
+	local limbs = C(spec.limbs) or body
+	local legs = C(spec.legs) or limbs
+	local skin = C(spec.skin) or Color3.fromRGB(215, 180, 150)
+	local mat = spec.material and Enum.Material[spec.material] or Enum.Material.SmoothPlastic
+	local s = head.Size.Y / 1.35   -- adapt accessory scale to the avatar's head
+
+	-- strip clothing + prior morph so the theme reads clean
+	for _, x in ipairs(character:GetChildren()) do
+		if x:IsA("Shirt") or x:IsA("Pants") or x:IsA("ShirtGraphic") or x:IsA("Accessory") then x:Destroy() end
+	end
+	for _, d in ipairs(character:GetDescendants()) do
+		if d:GetAttribute("Themed") then d:Destroy()
+		elseif d:IsA("Decal") and d.Name == "face" then d.Transparency = 1 end
+	end
+
+	-- recolor body parts (name-based so it works for R6 and R15)
+	for _, p in ipairs(character:GetDescendants()) do
+		if p:IsA("BasePart") and p ~= hrp then
+			local n = p.Name
+			if n == "Head" then p.Color = skin; p.Material = mat
+			elseif string.find(n, "Torso") then p.Color = body; p.Material = mat
+			elseif string.find(n, "Arm") or string.find(n, "Hand") then p.Color = limbs; p.Material = mat
+			elseif string.find(n, "Leg") or string.find(n, "Foot") then p.Color = legs; p.Material = mat
+			end
+		end
+	end
+
+	-- add the character's accessories (diff before/after to tag them for cleanup)
+	local before = {}
+	for _, d in ipairs(character:GetDescendants()) do before[d] = true end
+
+	if spec.hair then addHair(character, head, spec, s) end
+	if spec.beard then addBeard(character, head, spec, s) end
+	if spec.horns then addHorns(character, head, spec, s) end
+	if spec.hood then addHood(character, head, spec, s) end
+	if spec.eyes then addEyes(character, head, spec, s) end
+	if spec.cape then addCape(character, torso, spec, s) end
+	if spec.tentacles then addTentacles(character, torso, spec, s) end
+	if spec.emblem then addEmblem(character, torso, spec, s) end
+	if spec.chestEye then
+		local ce = neonPart(character, "ChestEye", Vector3.new(0.9, 0.9, 0.14) * s, C(spec.chestEye), torso.CFrame * CFrame.new(0, 0.1 * s, -0.55 * s))
+		weld(ce, torso)
+	end
+	if spec.aura then addAura(character, hrp, spec, s) end
+
+	for _, d in ipairs(character:GetDescendants()) do
+		if not before[d] then d:SetAttribute("Themed", true) end
+	end
+	if hum then hum.DisplayName = spec.name or (type(nameOrSpec) == "string" and nameOrSpec) or hum.DisplayName end
+	return true
 end
 
 -------------------------------------------------------------------

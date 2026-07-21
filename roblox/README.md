@@ -231,11 +231,11 @@ of parts from an appearance SPEC — the looks read off the roster art. Specs li
 in `CharacterModels` (`ReplicatedStorage > Characters > CharacterModels`,
 ModuleScript, pure data). **39 characters** modeled so far.
 
-| File | Studio location | Type |
-| --- | --- | --- |
-| `ServerStorage/CharacterModelFactory.lua` | `ServerStorage > CharacterModelFactory` | ModuleScript (new) |
+| File                                               | Studio location                                    | Type               |
+| -------------------------------------------------- | -------------------------------------------------- | ------------------ |
+| `ServerStorage/CharacterModelFactory.lua`          | `ServerStorage > CharacterModelFactory`            | ModuleScript (new) |
 | `ReplicatedStorage/Characters/CharacterModels.lua` | `ReplicatedStorage > Characters > CharacterModels` | ModuleScript (new) |
-| `ServerScriptService/BuildModelGallery.server.lua` | `ServerScriptService > BuildModelGallery` | Script (new) |
+| `ServerScriptService/BuildModelGallery.server.lua` | `ServerScriptService > BuildModelGallery`          | Script (new)       |
 
 **Appearance features** (all data-driven, no assets): spiky anime hair, glowing
 eyes (dual / single / visor), shadowed hoods with glowing eyes, Channel's TV
@@ -253,7 +253,32 @@ Manderin, The Anonymous, Void Overlord, Nemesis, Minus, Null, Omega, Armageddon,
 Dragon, Rynox, Sugoro, Channel.
 
 **View them all.** Run in the Studio Command Bar:
+
 ```lua
 require(game.ServerStorage.CharacterModelFactory).gallery(workspace, CFrame.new(0, 5, 300))
 ```
+
 Every modeled character appears as a labeled display statue.
+
+## Starting-character select (spawn as your character)
+
+Players pick a starting character for the campaign and **spawn as them** — the
+avatar is skinned with the character's themed look and their `CharacterName`
+attribute is set so the ability system uses that character's CharacterKit.
+
+| File | Studio location | Type |
+| --- | --- | --- |
+| `ServerScriptService/CharacterSelect.server.lua` | `ServerScriptService > CharacterSelect` | Script (new) |
+| `StarterPlayerScripts/CharacterSelectGui.client.lua` | `StarterPlayer > StarterPlayerScripts > CharacterSelectGui` | LocalScript (new) |
+
+Starting roster: **Looney, Leon, Chasm, Frost, Water Woman**. On join a picker
+appears; clicking a card spawns you as that hero. The pick sticks across
+respawns. It works by *skinning the real character* (`CharacterModelFactory.applyTo`,
+R6 **and** R15) — recolor + welded accessories — so movement, camera and
+animation are never disrupted, and re-picking strips the previous look instead
+of stacking it. To change the roster, edit `STARTERS` in `CharacterSelect`.
+
+Model additions this pass: **Leon** and **Chasm** (starting heroes), **Old Man
+Omega** (normal Omega greyed with a beard — new `beard` feature), and **Carnage**
+(modeled from his *description* — metallic blood-red "god of fear" with horns via
+the new `horns` feature — not an image). 43 characters modeled total.
