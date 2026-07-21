@@ -3,10 +3,12 @@
 	WHERE IT GOES: ReplicatedStorage > Campaign > WarriorsOfTheWorld
 
 	The original Warriors of the World — the strike team that descends into Null's
-	Shadowlands (Season 3), defeats the Void Overlord on Gildonia (Season 5), and
-	makes the last stand against Omega (Season 7). They become PLAYABLE heroes the
-	moment you start a Season 3 campaign, and stay pickable until the story removes
-	them (see `untilSeason` — Valkery is cut down by Null in Season 4).
+	Shadowlands (Season 3) and defeats the Void Overlord on Gildonia (Season 5).
+	At the END of Season 5 they answer a distress beacon to Omega's planet, where
+	Omega arrives and takes out the entire team — so they're PLAYABLE from the
+	moment you start a Season 3 campaign through Season 5, then gone. (Valkery is
+	cut down earlier, by Null in the Season 4 hunt.) That window still lets you
+	fight Null, the Void Overlord, and Omega himself with the Warriors' real kits.
 
 	This is a STORY unlock, not a shop purchase: it costs no Coins, it's gated to
 	the campaign season you're playing. Both the client (which shows the extra
@@ -29,15 +31,15 @@ WarriorsOfTheWorld.UnlockSeason = 3   -- first season they're playable
 -- fromSeason/untilSeason are inclusive season ids from the CampaignRegistry.
 -- (Frost and Water Woman are also free hero STARTERS, so they're always pickable;
 -- listing them here just marks them as canonical Warriors of the World.)
+-- Omega wipes out the whole team at the end of Season 5, so untilSeason = 5 for
+-- everyone (Valkery leaves a season earlier — Null kills her in the S4 hunt).
 WarriorsOfTheWorld.Members = {
-	{ name = "Red Rocket",  fromSeason = 3, untilSeason = 7, blurb = "Leader of the Warriors — flame charges and rocket rushes." },
-	{ name = "Dead Dash",   fromSeason = 3, untilSeason = 7, blurb = "The storm speedster — energy blurs and lightning-quick strikes." },
-	{ name = "Water Woman", fromSeason = 3, untilSeason = 7, blurb = "Water beam, water spheres, a tide ward, and lashing tentacles." },
-	{ name = "Liberty",     fromSeason = 3, untilSeason = 7, blurb = "Storm-caller of liberty — lightning bolts and thunder." },
-	{ name = "Jumper",      fromSeason = 3, untilSeason = 7, blurb = "The scout who warned Earth — rifts, blinks, and reach." },
-	{ name = "Frost",       fromSeason = 3, untilSeason = 7, blurb = "Ice beam that slows then freezes, ice balls, a shattering ward." },
-	-- Valkery falls to Null during the Season 4 hunt, so she's cut from the
-	-- roster afterward.
+	{ name = "Red Rocket",  fromSeason = 3, untilSeason = 5, blurb = "Leader of the Warriors — flame charges and rocket rushes." },
+	{ name = "Dead Dash",   fromSeason = 3, untilSeason = 5, blurb = "The storm speedster — energy blurs and lightning-quick strikes." },
+	{ name = "Water Woman", fromSeason = 3, untilSeason = 5, blurb = "Water beam, water spheres, a tide ward, and lashing tentacles." },
+	{ name = "Liberty",     fromSeason = 3, untilSeason = 5, blurb = "Storm-caller of liberty — lightning bolts and thunder." },
+	{ name = "Jumper",      fromSeason = 3, untilSeason = 5, blurb = "The scout who warned Earth — rifts, blinks, and reach." },
+	{ name = "Frost",       fromSeason = 3, untilSeason = 5, blurb = "Ice beam that slows then freezes, ice balls, a shattering ward." },
 	{ name = "Valkery",     fromSeason = 3, untilSeason = 4, blurb = "Winged warrior — aerial dives and twin blades. Falls to Null." },
 }
 
