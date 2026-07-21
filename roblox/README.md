@@ -325,11 +325,36 @@ Season 10 Quantum City.** Set `CampaignRegistry.ActiveSeason` to pick one.
   roots, stilt villages, a poison marsh, Minus's war camp, and the **Gator's Den**
   boss lair. 6 sectors, ends against **Minus** (themed model + phase-two).
 
-| File | Studio location | Type |
-| --- | --- | --- |
-| `ServerStorage/SwamplandsBuilder.lua` | `ServerStorage > SwamplandsBuilder` | ModuleScript (new) |
+| File                                                | Studio location                                     | Type               |
+| --------------------------------------------------- | --------------------------------------------------- | ------------------ |
+| `ServerStorage/SwamplandsBuilder.lua`               | `ServerStorage > SwamplandsBuilder`                 | ModuleScript (new) |
 | `ReplicatedStorage/Campaign/SwamplandsCampaign.lua` | `ReplicatedStorage > Campaign > SwamplandsCampaign` | ModuleScript (new) |
 
 **Built maps (5, one per biome):** Season 1 Swamplands (swamp), Season 5
 Gildonia (jungle), Season 7 Ruined City (ruin), Season 8 Metro City (city),
 Season 10 Quantum City (digital). Set `CampaignRegistry.ActiveSeason` to pick.
+
+## Campaign menu — season select with unlocks + character select
+
+A front-end flow: **main menu → CAMPAIGN → season select → character select →
+play**. Only Season 1 is playable for a new player; completing a season unlocks
+the next. Progress persists per player (DataStore, with an in-memory fallback if
+DataStores are off).
+
+| File | Studio location | Type |
+| --- | --- | --- |
+| `ServerScriptService/CampaignMenu.server.lua` | `ServerScriptService > CampaignMenu` | Script (new) |
+| `StarterPlayerScripts/CampaignMenu.client.lua` | `StarterPlayer > StarterPlayerScripts > CampaignMenu` | LocalScript (new) |
+
+The playable ladder is the **built seasons in order**, shown as Season 1–5 (Rise
+of Minus → The Void Overlord → Omega's Chaos → Metro City → Blue's Loops).
+Picking a season then a hero starts that season as the chosen character.
+
+**How it's wired:** the controller is now **menu-driven** — it no longer
+auto-starts. `CampaignMenu` validates the pick against saved progress and fires
+the `StartCampaignSeason` BindableEvent (ServerStorage); the controller loads
+that season's map + route and runs it. On victory the controller fires
+`SeasonCompleted`, and the menu unlocks + saves the next season. (Both
+BindableEvents auto-create.) The old standalone `CharacterSelectGui` is now a
+no-op stub — the menu handles character picking; you can delete it. The
+`CharacterSelect` server morph logic is unchanged.

@@ -86,7 +86,15 @@ if not event then
 end
 
 local REACH_RADIUS = 26          -- how close a player must get to the unlocked marker
-local START_DELAY  = 4           -- seconds after the first player joins
+
+-- server-to-server channels shared with the CampaignMenu (auto-created)
+local function ensureBindable(name)
+	local b = ServerStorage:FindFirstChild(name)
+	if not b then b = Instance.new("BindableEvent"); b.Name = name; b.Parent = ServerStorage end
+	return b
+end
+local startSeasonEvent = ensureBindable("StartCampaignSeason")   -- menu -> controller: (player, seasonId)
+local seasonCompletedEvent = ensureBindable("SeasonCompleted")   -- controller -> menu: (seasonId)
 
 -------------------------------------------------------------------
 -- STATE
@@ -235,13 +243,9 @@ function completeStage()
 		clearEnemies()
 		broadcast("victory")
 		running = false
-		-- optional loop: restart the campaign after a breather
-		task.delay(25, function()
-			if #Players:GetPlayers() > 0 then
-				running = true
-				startStage(1)
-			end
-		end)
+		-- tell the menu this season is done, so it can unlock the next one
+		local sid = Campaign.Season or (activeSeason and activeSeason.id)
+		if sid then seasonCompletedEvent:Fire(sid) end
 		return
 	end
 	startStage(index + 1)
@@ -269,15 +273,37 @@ RunService.Heartbeat:Connect(function()
 end)
 
 -------------------------------------------------------------------
--- BOOT
+-- START A CHOSEN SEASON (driven by the CampaignMenu)
 -------------------------------------------------------------------
-local function begin()
-	if running then return end
+-- point the controller at a season's route module (from the registry)
+local function loadSeasonRoute(seasonId)
+	local season = Registry and Registry.get(seasonId)
+	local rn = season and season.route
+	if not rn and seasonId == (activeSeason and activeSeason.id) then rn = routeName end
+	local mod = rn and safeRequire(campaignFolder and campaignFolder:FindFirstChild(rn))
+	return mod, season
+end
+
+local function beginSeason(seasonId)
+	local route, season = loadSeasonRoute(seasonId)
+	if not route then
+		warn("CampaignController: season " .. tostring(seasonId) .. " has no built route module.")
+		return
+	end
+	-- retarget the whole controller at this season (all closures read these upvalues)
+	Campaign = route
+	activeSeason = season
+
+	-- stop any current run and clear its enemies
+	running = false
+	index = 0
+	stageCleared = false
+	clearEnemies()
+
 	local cityName = Campaign.CityModelName or "MetroCity"
 	city = workspace:FindFirstChild(cityName)
-	-- build the active season's map if it isn't in the place yet
-	if not city then
-		local builderName = Campaign.MapBuilder or (activeSeason and activeSeason.map)
+	if not city then   -- build this season's map on demand
+		local builderName = Campaign.MapBuilder or (season and season.map)
 		local builder = builderName and safeRequire(ServerStorage:FindFirstChild(builderName))
 		if builder then
 			pcall(function() builder.build(workspace) end)
@@ -285,7 +311,7 @@ local function begin()
 		end
 	end
 	if not city then
-		warn("CampaignController: '" .. cityName .. "' not found and no builder available — build the map first.")
+		warn("CampaignController: '" .. cityName .. "' not found and no builder available.")
 		return
 	end
 	enemyFolder = city:FindFirstChild("CampaignEnemies")
@@ -296,17 +322,16 @@ local function begin()
 	end
 	running = true
 	startStage(1)
-	local label = activeSeason and ("Season " .. activeSeason.id .. " — " .. activeSeason.title)
-		or (Campaign.CityName or cityName)
+	local label = season and ("Season " .. season.id .. " — " .. season.title) or (Campaign.CityName or cityName)
 	print("CampaignController: " .. label .. " started (" .. #Campaign.Stages .. " stages).")
 end
+
+-- the menu asks us to start a season
+startSeasonEvent.Event:Connect(function(_player, seasonId)
+	beginSeason(seasonId)
+end)
 
 -- send current state to late joiners
 event.OnServerEvent:Connect(function(player, msg)
 	if msg == "requestState" then broadcast(running and "sync" or "idle") end
 end)
-
-Players.PlayerAdded:Connect(function()
-	task.delay(START_DELAY, begin)
-end)
-if #Players:GetPlayers() > 0 then task.delay(START_DELAY, begin) end
