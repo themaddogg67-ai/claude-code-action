@@ -36,6 +36,8 @@ end
 local Factory = safeRequire(ServerStorage:FindFirstChild("CharacterModelFactory"))
 local Shop = safeRequire(ReplicatedStorage:FindFirstChild("Campaign")
 	and ReplicatedStorage.Campaign:FindFirstChild("ShopCatalog"))
+local Warriors = safeRequire(ReplicatedStorage:FindFirstChild("Campaign")
+	and ReplicatedStorage.Campaign:FindFirstChild("WarriorsOfTheWorld"))
 
 local event = ReplicatedStorage:FindFirstChild("CharacterSelectEvent")
 if not event then
@@ -76,7 +78,16 @@ local function rosterFor(faction, player)
 	end
 	return list
 end
-local function isAllowed(name, faction, player) return inList(rosterFor(faction, player), name) end
+-- the "Warriors of the World" are heroes unlocked by playing Season 3+, pickable
+-- while the season you're starting is inside each Warrior's story window.
+local function warriorAllowed(name, faction, seasonId)
+	if not Warriors or faction ~= "hero" then return false end
+	return Warriors.isAvailable(name, seasonId)
+end
+local function isAllowed(name, faction, player, seasonId)
+	if inList(rosterFor(faction, player), name) then return true end
+	return warriorAllowed(name, faction, seasonId)
+end
 
 -- outgoing-damage multiplier from PowerLevel (set by CampaignMenu's XP system).
 -- Villains climb from their weak start toward full strength; heroes get a mild
@@ -128,15 +139,15 @@ local function setup(player)
 end
 
 event.OnServerEvent:Connect(function(player, payload)
-	local name, faction
+	local name, faction, seasonId
 	if type(payload) == "table" then
-		name = payload.name; faction = payload.faction
+		name = payload.name; faction = payload.faction; seasonId = payload.seasonId
 	elseif type(payload) == "string" then
 		name = payload; faction = "hero"
 	end
 	if type(name) ~= "string" then return end
 	faction = (faction == "villain") and "villain" or "hero"
-	if not isAllowed(name, faction, player) then return end
+	if not isAllowed(name, faction, player, seasonId) then return end
 
 	chosen[player] = { character = name, faction = faction }
 	event:FireClient(player, "chosen", name)

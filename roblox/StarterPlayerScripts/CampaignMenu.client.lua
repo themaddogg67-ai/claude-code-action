@@ -22,6 +22,14 @@ local menuEvent = ReplicatedStorage:WaitForChild("CampaignMenuEvent", 30)
 local charEvent = ReplicatedStorage:WaitForChild("CharacterSelectEvent", 30)
 if not menuEvent then return end
 
+-- the Warriors of the World: story-unlocked heroes (Season 3+, per-season window)
+local Warriors
+do
+	local camp = ReplicatedStorage:FindFirstChild("Campaign")
+	local mod = camp and camp:FindFirstChild("WarriorsOfTheWorld")
+	if mod then local ok, m = pcall(require, mod); Warriors = ok and m or nil end
+end
+
 local INK    = Color3.fromRGB(240, 245, 255)
 local MUTED  = Color3.fromRGB(150, 165, 190)
 local ACCENT = Color3.fromRGB(80, 160, 255)
@@ -224,46 +232,84 @@ corner(fBack, 8); fBack.Activated:Connect(function() show(seasonP) end)
 local charTitle = label(charP, "CHOOSE YOUR HERO", 26, INK, 0, Enum.Font.GothamBlack)
 charTitle.Position = UDim2.new(0, 0, 0.12, 0)
 label(charP, "Your pick sets your look and your abilities.", 15, MUTED, 0, Enum.Font.Gotham).Position = UDim2.new(0, 0, 0.12, 34)
-local charRow = Instance.new("Frame")
-charRow.Size = UDim2.new(0, 1000, 0, 280); charRow.Position = UDim2.new(0.5, -500, 0.5, -100); charRow.BackgroundTransparency = 1; charRow.Parent = charP
-local cLayout = Instance.new("UIListLayout")
-cLayout.FillDirection = Enum.FillDirection.Horizontal; cLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-cLayout.VerticalAlignment = Enum.VerticalAlignment.Center; cLayout.Padding = UDim.new(0, 14); cLayout.Parent = charRow
+local charNote = label(charP, "", 14, GOLD, 0, Enum.Font.GothamBold)
+charNote.Position = UDim2.new(0, 0, 0.12, 58); charNote.Visible = false
+local charScroll = Instance.new("ScrollingFrame")
+charScroll.Size = UDim2.new(0, 1140, 0, 300); charScroll.Position = UDim2.new(0.5, -570, 0.5, -110)
+charScroll.BackgroundTransparency = 1; charScroll.BorderSizePixel = 0; charScroll.ScrollBarThickness = 8
+charScroll.CanvasSize = UDim2.new(0, 0, 0, 0); charScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; charScroll.Parent = charP
+local cGrid = Instance.new("UIGridLayout")
+cGrid.CellSize = UDim2.new(0, 184, 0, 250); cGrid.CellPadding = UDim2.new(0, 14, 0, 14)
+cGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center; cGrid.Parent = charScroll
 local cBack = Instance.new("TextButton")
-cBack.Size = UDim2.new(0, 120, 0, 34); cBack.Position = UDim2.new(0.5, -60, 1, -70); cBack.BackgroundColor3 = PANEL
+cBack.Size = UDim2.new(0, 120, 0, 34); cBack.Position = UDim2.new(0.5, -60, 1, -50); cBack.BackgroundColor3 = PANEL
 cBack.Text = "◀ Back"; cBack.Font = Enum.Font.GothamBold; cBack.TextSize = 15; cBack.TextColor3 = MUTED; cBack.Parent = charP
 corner(cBack, 8); cBack.Activated:Connect(function() show(seasonP) end)
+
+local WARRIOR_TINT = Color3.fromRGB(235, 195, 100)   -- gold accent for story-unlocked Warriors
+
+local function buildCharCard(entry)
+	local name = entry.name
+	local tint = entry.warrior and WARRIOR_TINT or (TINT[name] or ACCENT)
+	local card = Instance.new("TextButton")
+	card.AutoButtonColor = false; card.BackgroundColor3 = PANEL; card.Text = ""; card.Parent = charScroll
+	corner(card, 12); local st = stroke(card, tint, entry.warrior and 0.15 or 0.4)
+	local swatch = Instance.new("Frame")
+	swatch.Size = UDim2.new(1, -20, 0, 100); swatch.Position = UDim2.new(0, 10, 0, 12); swatch.BackgroundColor3 = tint; swatch.BackgroundTransparency = 0.15; swatch.Parent = card
+	corner(swatch, 10)
+	local ini = Instance.new("TextLabel"); ini.Size = UDim2.fromScale(1, 1); ini.BackgroundTransparency = 1; ini.Font = Enum.Font.GothamBlack
+	ini.TextSize = 52; ini.TextColor3 = Color3.fromRGB(12, 14, 20); ini.Text = string.sub(name, 1, 1); ini.Parent = swatch
+	if entry.warrior then
+		local badge = Instance.new("TextLabel")
+		badge.Size = UDim2.new(1, -20, 0, 16); badge.Position = UDim2.new(0, 10, 0, 116); badge.BackgroundTransparency = 1
+		badge.Font = Enum.Font.GothamBlack; badge.TextSize = 10; badge.TextColor3 = GOLD; badge.Text = "⚔ WARRIOR OF THE WORLD"
+		badge.TextXAlignment = Enum.TextXAlignment.Left; badge.Parent = card
+	end
+	local nm = label(card, name, 18, INK, entry.warrior and 130 or 122)
+	nm.Position = UDim2.new(0, 10, 0, entry.warrior and 130 or 122)
+	local body = Instance.new("TextLabel")
+	body.Size = UDim2.new(1, -16, 0, 76); body.Position = UDim2.new(0, 8, 0, 158); body.BackgroundTransparency = 1
+	body.Font = Enum.Font.Gotham; body.TextSize = 13; body.TextColor3 = MUTED; body.TextWrapped = true
+	body.TextXAlignment = Enum.TextXAlignment.Left; body.TextYAlignment = Enum.TextYAlignment.Top
+	body.Text = entry.blurb or CHAR_BLURB[name] or ""; body.Parent = card
+	card.MouseEnter:Connect(function() TweenService:Create(st, TweenInfo.new(0.12), { Transparency = 0 }):Play() end)
+	card.MouseLeave:Connect(function() TweenService:Create(st, TweenInfo.new(0.12), { Transparency = entry.warrior and 0.15 or 0.4 }):Play() end)
+	card.Activated:Connect(function()
+		if charEvent then charEvent:FireServer({ name = name, faction = chosenFaction, seasonId = chosenSeason }) end   -- morph + kit + faction
+		menuEvent:FireServer("start", { seasonId = chosenSeason, character = name, faction = chosenFaction })
+		gui.Enabled = false
+	end)
+end
 
 function renderCharacters(faction)
 	if not rosters then return end
 	local list = (faction == "villain") and rosters.villains or rosters.heroes
 	if not list then return end
 	charTitle.Text = (faction == "villain") and "CHOOSE YOUR VILLAIN" or "CHOOSE YOUR HERO"
-	for _, ch in ipairs(charRow:GetChildren()) do if ch:IsA("GuiObject") then ch:Destroy() end end
+	for _, ch in ipairs(charScroll:GetChildren()) do if ch:IsA("GuiObject") then ch:Destroy() end end
+
+	local seen, entries = {}, {}
 	for _, name in ipairs(list) do
-		local tint = TINT[name] or ACCENT
-		local card = Instance.new("TextButton")
-		card.Size = UDim2.new(0, 184, 0, 250); card.AutoButtonColor = false; card.BackgroundColor3 = PANEL; card.Text = ""; card.Parent = charRow
-		corner(card, 12); local st = stroke(card, tint, 0.4)
-		local swatch = Instance.new("Frame")
-		swatch.Size = UDim2.new(1, -20, 0, 110); swatch.Position = UDim2.new(0, 10, 0, 12); swatch.BackgroundColor3 = tint; swatch.BackgroundTransparency = 0.15; swatch.Parent = card
-		corner(swatch, 10)
-		local ini = Instance.new("TextLabel"); ini.Size = UDim2.fromScale(1, 1); ini.BackgroundTransparency = 1; ini.Font = Enum.Font.GothamBlack
-		ini.TextSize = 56; ini.TextColor3 = Color3.fromRGB(12, 14, 20); ini.Text = string.sub(name, 1, 1); ini.Parent = swatch
-		label(card, name, 18, INK, 130).Position = UDim2.new(0, 10, 0, 130)
-		local body = Instance.new("TextLabel")
-		body.Size = UDim2.new(1, -16, 0, 84); body.Position = UDim2.new(0, 8, 0, 158); body.BackgroundTransparency = 1
-		body.Font = Enum.Font.Gotham; body.TextSize = 13; body.TextColor3 = MUTED; body.TextWrapped = true
-		body.TextXAlignment = Enum.TextXAlignment.Left; body.TextYAlignment = Enum.TextYAlignment.Top
-		body.Text = CHAR_BLURB[name] or ""; body.Parent = card
-		card.MouseEnter:Connect(function() TweenService:Create(st, TweenInfo.new(0.12), { Transparency = 0 }):Play() end)
-		card.MouseLeave:Connect(function() TweenService:Create(st, TweenInfo.new(0.12), { Transparency = 0.4 }):Play() end)
-		card.Activated:Connect(function()
-			if charEvent then charEvent:FireServer({ name = name, faction = chosenFaction }) end   -- morph + kit + faction
-			menuEvent:FireServer("start", { seasonId = chosenSeason, character = name, faction = chosenFaction })
-			gui.Enabled = false
-		end)
+		if not seen[name] then seen[name] = true; entries[#entries + 1] = { name = name } end
 	end
+	-- append the Warriors of the World unlocked for THIS season (heroes only)
+	local warriorCount = 0
+	if faction == "hero" and Warriors and type(chosenSeason) == "number" then
+		for _, m in ipairs(Warriors.availableFor(chosenSeason)) do
+			if not seen[m.name] then
+				seen[m.name] = true
+				entries[#entries + 1] = { name = m.name, warrior = true, blurb = m.blurb }
+				warriorCount = warriorCount + 1
+			end
+		end
+	end
+	if warriorCount > 0 then
+		charNote.Text = "⚔ Warriors of the World unlocked for this season — fight with the original team."
+		charNote.Visible = true
+	else
+		charNote.Visible = false
+	end
+	for _, e in ipairs(entries) do buildCharCard(e) end
 end
 
 -- ---------------- SHOP ----------------

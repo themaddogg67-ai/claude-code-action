@@ -459,3 +459,34 @@ purchase lands.
 the DataStore record); `CharacterSelect.server` reads the player's owned set from
 the `OwnedCharacters` attribute and folds it into the faction rosters;
 `CampaignMenu.client` adds the shop panel, coin display, and buy buttons.
+
+## Warriors of the World (Season 3 story unlock)
+
+Starting a **Season 3** campaign unlocks the original **Warriors of the World** as
+playable heroes — the strike team that descends into Null's Shadowlands, defeats
+the Void Overlord on Gildonia, and fights Omega. They're a **story** unlock (free,
+no Coins), and each stays pickable only while the story keeps them alive: they
+appear in Character Select for the seasons inside their window, so you fight Void
+Overlord (S5), Null (S3–4), and Omega (S7) with the Warriors' real kits.
+
+| Warrior    | Playable seasons | Notes                           |
+| ---------- | ---------------- | ------------------------------- |
+| Red Rocket | 3 – 7            | Leader of the Warriors          |
+| Titan      | 3 – 7            |                                 |
+| Champion   | 3 – 7            |                                 |
+| Patriot    | 3 – 7            |                                 |
+| Jumper     | 3 – 7            |                                 |
+| Valkery    | 3 – 4            | Cut down by Null in the S4 hunt |
+
+From Season 8 on they're gone from the roster. The gold-badged Warrior cards show
+up on the hero side of Character Select only when the season you're starting is in
+their window.
+
+| File                                                | Studio location                                     | Type               |
+| --------------------------------------------------- | --------------------------------------------------- | ------------------ |
+| `ReplicatedStorage/Campaign/WarriorsOfTheWorld.lua` | `ReplicatedStorage > Campaign > WarriorsOfTheWorld` | ModuleScript (new) |
+
+Both `CampaignMenu.client` (shows the season's Warrior cards) and
+`CharacterSelect.server` (validates the pick is a Warrior in-window for the season
+being started) read this module, so the roster and story windows are defined once.
+Edit `Members` there to change who's in the team or when they leave.
