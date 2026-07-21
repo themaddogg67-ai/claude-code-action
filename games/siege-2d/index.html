@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIEGE 2D — Tactical Breach</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="stage">
+        <canvas id="game"></canvas>
+
+        <!-- HUD overlay -->
+        <div id="hud" class="hidden">
+          <div class="hud-top">
+            <div class="hud-chip">
+              <span class="chip-label">OPERATOR</span>
+              <span id="op-name" class="chip-value">—</span>
+            </div>
+            <div class="hud-chip">
+              <span class="chip-label">TIME</span>
+              <span id="timer-num" class="chip-value">2:00</span>
+            </div>
+            <div class="hud-chip">
+              <span class="chip-label">DEFENDERS</span>
+              <span id="enemies-num" class="chip-value">5</span>
+            </div>
+          </div>
+          <div class="hud-bottom">
+            <div class="hud-block">
+              <div class="hud-label">HEALTH <span id="hp-num">100</span></div>
+              <div class="bar"><div id="hp-fill" class="bar-fill"></div></div>
+            </div>
+            <div class="hud-block">
+              <div class="hud-label">AMMO</div>
+              <div id="ammo-num" class="hud-value">30 / 30</div>
+            </div>
+            <div class="hud-block">
+              <div class="hud-label">GADGET [E]</div>
+              <div id="gadget-num" class="hud-value">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main menu -->
+        <div id="menu" class="screen">
+          <div class="panel">
+            <h1>SIEGE<span class="accent">2D</span></h1>
+            <p class="tag">
+              A top-down tactical breach. Storm the building, breach the walls,
+              eliminate the defenders.
+            </p>
+            <button id="btn-start" class="btn btn-primary">DEPLOY</button>
+            <div class="controls">
+              <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</div>
+              <div><kbd>MOUSE</kbd> aim · <kbd>CLICK</kbd> fire</div>
+              <div><kbd>R</kbd> reload · <kbd>E</kbd> gadget</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Operator select -->
+        <div id="select" class="screen hidden">
+          <div class="panel wide">
+            <h2>SELECT OPERATOR</h2>
+            <div id="op-list" class="op-list"></div>
+            <button id="btn-back" class="btn">BACK</button>
+          </div>
+        </div>
+
+        <!-- End screen -->
+        <div id="end" class="screen hidden">
+          <div class="panel">
+            <h2 id="end-title">MISSION COMPLETE</h2>
+            <p id="end-reason" class="tag"></p>
+            <button id="btn-replay" class="btn btn-primary">PLAY AGAIN</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="objective-note">
+        Objective: eliminate every defender, or stand on a
+        <span class="def">DEF</span> point for 4s to secure it.
+      </div>
+    </div>
+
+    <script src="game.js"></script>
+  </body>
+</html>
