@@ -24,6 +24,10 @@ GildoniaCampaign.BossName  = "Void Overlord"
 -- defend it — and Red Rocket, leader of the Warriors, is your final foe.
 GildoniaCampaign.VillainEnemyName = "World Warrior"
 GildoniaCampaign.VillainBoss      = "Red Rocket"
+GildoniaCampaign.Briefing =
+	"A distress beacon leads to Gildonia, overrun by the Void's invasion. Fight through the Void's soldiers and stop the Void Overlord."
+GildoniaCampaign.VillainBriefing =
+	"Gildonia falls to the Void — and you lead the charge. The Warriors of the World defend it, led by Red Rocket. Raze it all."
 GildoniaCampaign.VillainObjectives = {
 	[1] = "Secure the crash site for the invasion.",
 	[2] = "Push through the jungle defenders.",

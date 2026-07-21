@@ -24,6 +24,10 @@ QuantumCityCampaign.BossName  = "The Anonymous"
 -- breach them — and Chasm, the energy hero, is your final foe.
 QuantumCityCampaign.VillainEnemyName = "Hero Intruder"
 QuantumCityCampaign.VillainBoss      = "Chasm"
+QuantumCityCampaign.Briefing =
+	"Blue's loops have trapped the heroes in the digital Quantum City. Breach the outer ring, cut through the Anonymous's sentinels, and reach the Sanctum to end him."
+QuantumCityCampaign.VillainBriefing =
+	"The loops are the Anonymous's fortress and you hold the walls. Heroes have breached the ring, led by Chasm. Repel every intruder and destroy him at the Sanctum."
 QuantumCityCampaign.VillainObjectives = {
 	[1] = "Repel the boarders at the docking ring.",
 	[2] = "Purge intruders from the data market.",

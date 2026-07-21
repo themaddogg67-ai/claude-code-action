@@ -34,6 +34,8 @@ local function safeRequire(inst)
 	return ok and m or nil
 end
 local Factory = safeRequire(ServerStorage:FindFirstChild("CharacterModelFactory"))
+local Shop = safeRequire(ReplicatedStorage:FindFirstChild("Campaign")
+	and ReplicatedStorage.Campaign:FindFirstChild("ShopCatalog"))
 
 local event = ReplicatedStorage:FindFirstChild("CharacterSelectEvent")
 if not event then
@@ -48,8 +50,33 @@ local function inList(list, name)
 	for _, n in ipairs(list) do if n == name then return true end end
 	return false
 end
-local function rosterFor(faction) return (faction == "villain") and VILLAIN_STARTERS or HERO_STARTERS end
-local function isAllowed(name, faction) return inList(rosterFor(faction), name) end
+
+-- names the player has unlocked in the shop, split from the "OwnedCharacters"
+-- attribute CampaignMenu writes ("Name1,Name2"), filtered to a faction.
+local function ownedFor(player, faction)
+	local out = {}
+	if not Shop then return out end
+	local raw = player:GetAttribute("OwnedCharacters")
+	if type(raw) ~= "string" or raw == "" then return out end
+	for name in string.gmatch(raw, "[^,]+") do
+		if Shop.factionOf(name) == faction then out[#out + 1] = name end
+	end
+	return out
+end
+
+-- full pickable roster for a faction = free starters + any owned extras
+local function rosterFor(faction, player)
+	local base = (faction == "villain") and VILLAIN_STARTERS or HERO_STARTERS
+	local list = {}
+	for _, n in ipairs(base) do list[#list + 1] = n end
+	if player then
+		for _, n in ipairs(ownedFor(player, faction)) do
+			if not inList(list, n) then list[#list + 1] = n end
+		end
+	end
+	return list
+end
+local function isAllowed(name, faction, player) return inList(rosterFor(faction, player), name) end
 
 -- outgoing-damage multiplier from PowerLevel (set by CampaignMenu's XP system).
 -- Villains climb from their weak start toward full strength; heroes get a mild
@@ -81,6 +108,12 @@ end
 local function onCharacter(player, character)
 	task.defer(skin, player, character)
 end
+local function sendRosters(player)
+	event:FireClient(player, "rosters", {
+		heroes = rosterFor("hero", player),
+		villains = rosterFor("villain", player),
+	})
+end
 local function setup(player)
 	player.CharacterAdded:Connect(function(char) onCharacter(player, char) end)
 	if player.Character then onCharacter(player, player.Character) end
@@ -89,7 +122,9 @@ local function setup(player)
 		local faction = player:GetAttribute("Faction") or "hero"
 		player:SetAttribute("ArmorDamageMult", powerMult(faction, player:GetAttribute("PowerLevel")))
 	end)
-	task.defer(function() event:FireClient(player, "rosters", { heroes = HERO_STARTERS, villains = VILLAIN_STARTERS }) end)
+	-- refresh the roster whenever the player unlocks a new character in the shop
+	player:GetAttributeChangedSignal("OwnedCharacters"):Connect(function() sendRosters(player) end)
+	task.defer(function() sendRosters(player) end)
 end
 
 event.OnServerEvent:Connect(function(player, payload)
@@ -101,7 +136,7 @@ event.OnServerEvent:Connect(function(player, payload)
 	end
 	if type(name) ~= "string" then return end
 	faction = (faction == "villain") and "villain" or "hero"
-	if not isAllowed(name, faction) then return end
+	if not isAllowed(name, faction, player) then return end
 
 	chosen[player] = { character = name, faction = faction }
 	event:FireClient(player, "chosen", name)

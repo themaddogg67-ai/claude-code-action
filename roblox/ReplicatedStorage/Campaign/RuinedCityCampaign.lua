@@ -25,6 +25,10 @@ RuinedCityCampaign.BossName  = "Omega"
 -- the city — and Patriot, the super-soldier defender, is your final foe.
 RuinedCityCampaign.VillainEnemyName = "Peacekeeper"
 RuinedCityCampaign.VillainBoss      = "Patriot"
+RuinedCityCampaign.Briefing =
+	"Omega has broken through and is tearing the city apart. Protect the evacuation, hold the line, and stop the planet-destroyer at Ground Zero."
+RuinedCityCampaign.VillainBriefing =
+	"The city burns and you fan the flames for Omega. Peacekeepers scramble to save it, led by Patriot. Finish what Omega started."
 RuinedCityCampaign.VillainObjectives = {
 	[1] = "Cut off the evacuation.",
 	[2] = "Tear through the streets.",

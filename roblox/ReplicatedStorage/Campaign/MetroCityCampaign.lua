@@ -55,6 +55,10 @@ MetroCityCampaign.BossName  = "Manderin"
 -- the hero who keeps saving the city, is your final foe.
 MetroCityCampaign.VillainEnemyName = "Resistance Fighter"
 MetroCityCampaign.VillainBoss      = "Looney"
+MetroCityCampaign.Briefing =
+	"Manderin has crowned himself dictator of Metro City. Fight in from the streets, free the districts, and pull him down from the top of Manderin Tower."
+MetroCityCampaign.VillainBriefing =
+	"Metro City is Manderin's, and you enforce his order. The resistance stirs in every district, and the hero Looney keeps saving them. Crush the uprising and end Looney."
 MetroCityCampaign.VillainObjectives = {
 	[1] = "Round up the residential dissidents.",
 	[2] = "Secure the plaza for Manderin.",

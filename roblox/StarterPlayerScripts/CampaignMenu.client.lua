@@ -49,8 +49,9 @@ local CHAR_BLURB = {
 }
 
 local seasonsData, rosters = nil, nil
-local chosenSeason, chosenFaction = nil, nil
+local chosenSeason, chosenSeasonData, chosenFaction = nil, nil, nil
 local renderCharacters   -- forward declaration (used by the faction buttons)
+local updateFactionScreen -- forward declaration (used when entering the faction panel)
 
 -- ---------------- UI scaffold ----------------
 local gui = Instance.new("ScreenGui")
@@ -76,10 +77,12 @@ local mainP = Instance.new("Frame"); mainP.Size = UDim2.fromScale(1, 1); mainP.B
 local seasonP = Instance.new("Frame"); seasonP.Size = UDim2.fromScale(1, 1); seasonP.BackgroundTransparency = 1; seasonP.Visible = false; seasonP.Parent = dim
 local factionP = Instance.new("Frame"); factionP.Size = UDim2.fromScale(1, 1); factionP.BackgroundTransparency = 1; factionP.Visible = false; factionP.Parent = dim
 local charP = Instance.new("Frame"); charP.Size = UDim2.fromScale(1, 1); charP.BackgroundTransparency = 1; charP.Visible = false; charP.Parent = dim
+local shopP = Instance.new("Frame"); shopP.Size = UDim2.fromScale(1, 1); shopP.BackgroundTransparency = 1; shopP.Visible = false; shopP.Parent = dim
 
 local function show(panel)
 	mainP.Visible = (panel == mainP); seasonP.Visible = (panel == seasonP)
 	factionP.Visible = (panel == factionP); charP.Visible = (panel == charP)
+	shopP.Visible = (panel == shopP)
 	gui.Enabled = true
 end
 
@@ -96,6 +99,18 @@ playBtn.MouseLeave:Connect(function() TweenService:Create(playBtn, TweenInfo.new
 playBtn.Activated:Connect(function()
 	menuEvent:FireServer("requestSeasons")
 	show(seasonP)
+end)
+
+local shopBtn = Instance.new("TextButton")
+shopBtn.Size = UDim2.new(0, 300, 0, 48); shopBtn.Position = UDim2.new(0.5, -150, 0.5, 96); shopBtn.AutoButtonColor = false
+shopBtn.BackgroundColor3 = PANEL; shopBtn.Text = "SHOP  —  UNLOCK CHARACTERS"; shopBtn.Font = Enum.Font.GothamBold; shopBtn.TextSize = 18
+shopBtn.TextColor3 = GOLD; shopBtn.Parent = mainP
+corner(shopBtn, 10); local shopBtnStroke = stroke(shopBtn, GOLD, 0.4)
+shopBtn.MouseEnter:Connect(function() TweenService:Create(shopBtnStroke, TweenInfo.new(0.12), { Transparency = 0 }):Play() end)
+shopBtn.MouseLeave:Connect(function() TweenService:Create(shopBtnStroke, TweenInfo.new(0.12), { Transparency = 0.4 }):Play() end)
+shopBtn.Activated:Connect(function()
+	menuEvent:FireServer("requestShop")
+	show(shopP)
 end)
 
 -- ---------------- SEASON SELECT ----------------
@@ -136,7 +151,7 @@ local function renderSeasons(data)
 		if playable then
 			card.MouseEnter:Connect(function() TweenService:Create(st, TweenInfo.new(0.12), { Transparency = 0 }):Play() end)
 			card.MouseLeave:Connect(function() TweenService:Create(st, TweenInfo.new(0.12), { Transparency = 0.35 }):Play() end)
-			card.Activated:Connect(function() chosenSeason = s.id; show(factionP) end)
+			card.Activated:Connect(function() chosenSeason = s.id; chosenSeasonData = s; updateFactionScreen(); show(factionP) end)
 		end
 	end
 	-- a "coming soon" card if planned seasons exist
@@ -152,17 +167,29 @@ local function renderSeasons(data)
 end
 
 -- ---------------- FACTION SELECT ----------------
-label(factionP, "PICK YOUR SIDE", 26, INK, 0, Enum.Font.GothamBlack).Position = UDim2.new(0, 0, 0.14, 0)
-label(factionP, "Play the campaign as a hero — or as a villain.", 15, MUTED, 0, Enum.Font.Gotham).Position = UDim2.new(0, 0, 0.14, 34)
-local function factionButton(text, sub, col, xoff, faction)
+label(factionP, "PICK YOUR SIDE", 26, INK, 0, Enum.Font.GothamBlack).Position = UDim2.new(0, 0, 0.1, 0)
+label(factionP, "Play the campaign as a hero — or as a villain.", 15, MUTED, 0, Enum.Font.Gotham).Position = UDim2.new(0, 0, 0.1, 34)
+local HERO_ROSTER_TEXT    = "Looney, Leon, Chasm, Frost, Water Woman — at full strength."
+local VILLAIN_ROSTER_TEXT = "Bulldozer, Reddon, Erik, Toxic — starting at their weakest."
+local function factionButton(text, col, xoff, faction)
 	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(0, 300, 0, 200); b.Position = UDim2.new(0.5, xoff, 0.5, -80); b.AutoButtonColor = false
+	b.Size = UDim2.new(0, 320, 0, 260); b.Position = UDim2.new(0.5, xoff, 0.5, -110); b.AutoButtonColor = false
 	b.BackgroundColor3 = PANEL; b.Text = ""; b.Parent = factionP
 	corner(b, 14); local st = stroke(b, col, 0.35)
-	local t = label(b, text, 30, col, 46, Enum.Font.GothamBlack)
-	local s = Instance.new("TextLabel")
-	s.Size = UDim2.new(1, -24, 0, 60); s.Position = UDim2.new(0, 12, 0, 110); s.BackgroundTransparency = 1
-	s.Font = Enum.Font.Gotham; s.TextSize = 14; s.TextColor3 = MUTED; s.TextWrapped = true; s.Text = sub; s.Parent = b
+	label(b, text, 30, col, 20, Enum.Font.GothamBlack)
+	-- boss line for this side (filled per-season)
+	local bossL = label(b, "", 14, GOLD, 62, Enum.Font.GothamBold)
+	-- the per-faction mission briefing (filled per-season)
+	local brief = Instance.new("TextLabel")
+	brief.Size = UDim2.new(1, -28, 0, 110); brief.Position = UDim2.new(0, 14, 0, 92); brief.BackgroundTransparency = 1
+	brief.Font = Enum.Font.Gotham; brief.TextSize = 14; brief.TextColor3 = INK; brief.TextWrapped = true
+	brief.TextXAlignment = Enum.TextXAlignment.Left; brief.TextYAlignment = Enum.TextYAlignment.Top; brief.Parent = b
+	-- the roster reminder
+	local roster = Instance.new("TextLabel")
+	roster.Size = UDim2.new(1, -28, 0, 36); roster.Position = UDim2.new(0, 14, 1, -44); roster.BackgroundTransparency = 1
+	roster.Font = Enum.Font.GothamMedium; roster.TextSize = 12; roster.TextColor3 = MUTED; roster.TextWrapped = true
+	roster.TextXAlignment = Enum.TextXAlignment.Left; roster.TextYAlignment = Enum.TextYAlignment.Bottom
+	roster.Text = (faction == "villain") and VILLAIN_ROSTER_TEXT or HERO_ROSTER_TEXT; roster.Parent = b
 	b.MouseEnter:Connect(function() TweenService:Create(st, TweenInfo.new(0.12), { Transparency = 0 }):Play() end)
 	b.MouseLeave:Connect(function() TweenService:Create(st, TweenInfo.new(0.12), { Transparency = 0.35 }):Play() end)
 	b.Activated:Connect(function()
@@ -170,10 +197,24 @@ local function factionButton(text, sub, col, xoff, faction)
 		renderCharacters(faction)
 		show(charP)
 	end)
-	return b
+	return { button = b, boss = bossL, brief = brief }
 end
-factionButton("HEROES", "Looney, Leon, Chasm, Frost, Water Woman — at full strength.", Color3.fromRGB(80, 170, 255), -320, "hero")
-factionButton("VILLAINS", "Bulldozer, Reddon, Erik, Toxic — starting at their weakest.", Color3.fromRGB(200, 70, 70), 20, "villain")
+local heroFaction    = factionButton("HEROES", Color3.fromRGB(80, 170, 255), -340, "hero")
+local villainFaction = factionButton("VILLAINS", Color3.fromRGB(200, 70, 70), 20, "villain")
+
+-- fill the two cards with the CHOSEN season's per-faction story briefing
+function updateFactionScreen()
+	local s = chosenSeasonData
+	local heroBrief = s and s.briefing
+		or "Fight through the season as a hero and bring down the boss."
+	local villBrief = s and s.villainBriefing
+		or "Fight through the season from the villain's side — the heroes come for you."
+	heroFaction.brief.Text = heroBrief
+	villainFaction.brief.Text = villBrief
+	heroFaction.boss.Text    = "Final foe: " .. ((s and (s.heroBoss or s.boss)) or "?")
+	villainFaction.boss.Text = "Final foe: " .. ((s and s.villainBoss) or "the hero who hunts you")
+end
+
 local fBack = Instance.new("TextButton")
 fBack.Size = UDim2.new(0, 120, 0, 34); fBack.Position = UDim2.new(0.5, -60, 1, -70); fBack.BackgroundColor3 = PANEL
 fBack.Text = "◀ Back"; fBack.Font = Enum.Font.GothamBold; fBack.TextSize = 15; fBack.TextColor3 = MUTED; fBack.Parent = factionP
@@ -225,6 +266,61 @@ function renderCharacters(faction)
 	end
 end
 
+-- ---------------- SHOP ----------------
+label(shopP, "CHARACTER SHOP", 26, GOLD, 0, Enum.Font.GothamBlack).Position = UDim2.new(0, 0, 0.06, 0)
+label(shopP, "Spend Coins earned in the campaign to unlock extra heroes and villains.", 15, MUTED, 0, Enum.Font.Gotham).Position = UDim2.new(0, 0, 0.06, 34)
+local coinsLabel = label(shopP, "Coins: 0", 20, GOLD, 0, Enum.Font.GothamBold)
+coinsLabel.Position = UDim2.new(0, 0, 0.06, 62)
+local shopScroll = Instance.new("ScrollingFrame")
+shopScroll.Size = UDim2.new(0, 1120, 0, 400); shopScroll.Position = UDim2.new(0.5, -560, 0.5, -140)
+shopScroll.BackgroundTransparency = 1; shopScroll.BorderSizePixel = 0; shopScroll.ScrollBarThickness = 8
+shopScroll.CanvasSize = UDim2.new(0, 0, 0, 0); shopScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; shopScroll.Parent = shopP
+local shopGrid = Instance.new("UIGridLayout")
+shopGrid.CellSize = UDim2.new(0, 260, 0, 120); shopGrid.CellPadding = UDim2.new(0, 12, 0, 12)
+shopGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center; shopGrid.Parent = shopScroll
+local shopPad = Instance.new("UIPadding"); shopPad.PaddingTop = UDim.new(0, 6); shopPad.Parent = shopScroll
+local shBack = Instance.new("TextButton")
+shBack.Size = UDim2.new(0, 120, 0, 34); shBack.Position = UDim2.new(0.5, -60, 1, -60); shBack.BackgroundColor3 = PANEL
+shBack.Text = "◀ Back"; shBack.Font = Enum.Font.GothamBold; shBack.TextSize = 15; shBack.TextColor3 = MUTED; shBack.Parent = shopP
+corner(shBack, 8); shBack.Activated:Connect(function() show(mainP) end)
+
+local FACTION_COL = { hero = Color3.fromRGB(80, 170, 255), villain = Color3.fromRGB(200, 70, 70) }
+local function renderShop(data)
+	if not data then return end
+	coinsLabel.Text = "Coins: " .. tostring(data.coins or 0) .. "  (" .. (data.currency or "Coins") .. ")"
+	for _, ch in ipairs(shopScroll:GetChildren()) do if ch:IsA("GuiObject") then ch:Destroy() end end
+	for _, item in ipairs(data.items or {}) do
+		local col = FACTION_COL[item.faction] or ACCENT
+		local card = Instance.new("Frame")
+		card.BackgroundColor3 = PANEL; card.Parent = shopScroll
+		corner(card, 12); stroke(card, col, 0.45)
+		local bar = Instance.new("Frame")
+		bar.Size = UDim2.new(0, 6, 1, -16); bar.Position = UDim2.new(0, 8, 0, 8); bar.BackgroundColor3 = col; bar.BorderSizePixel = 0; bar.Parent = card
+		corner(bar, 3)
+		local nm = label(card, item.name, 17, INK, 8, Enum.Font.GothamBold)
+		nm.Position = UDim2.new(0, 22, 0, 8); nm.Size = UDim2.new(1, -30, 0, 22); nm.TextXAlignment = Enum.TextXAlignment.Left
+		local bl = Instance.new("TextLabel")
+		bl.Size = UDim2.new(1, -30, 0, 40); bl.Position = UDim2.new(0, 22, 0, 32); bl.BackgroundTransparency = 1
+		bl.Font = Enum.Font.Gotham; bl.TextSize = 12; bl.TextColor3 = MUTED; bl.TextWrapped = true
+		bl.TextXAlignment = Enum.TextXAlignment.Left; bl.TextYAlignment = Enum.TextYAlignment.Top; bl.Text = item.blurb or ""; bl.Parent = card
+		local buy = Instance.new("TextButton")
+		buy.Size = UDim2.new(1, -30, 0, 30); buy.Position = UDim2.new(0, 22, 1, -38); buy.AutoButtonColor = false
+		buy.Font = Enum.Font.GothamBold; buy.TextSize = 14; buy.Parent = card
+		corner(buy, 8)
+		if item.owned then
+			buy.BackgroundColor3 = Color3.fromRGB(40, 60, 44); buy.TextColor3 = Color3.fromRGB(150, 220, 160); buy.Text = "OWNED ✓"
+		else
+			local afford = item.affordable
+			buy.BackgroundColor3 = afford and col or Color3.fromRGB(40, 44, 54)
+			buy.TextColor3 = afford and Color3.fromRGB(8, 12, 20) or MUTED
+			buy.Text = (afford and "BUY  " or "🔒  ") .. tostring(item.price)
+			buy.Activated:Connect(function()
+				menuEvent:FireServer("buy", { name = item.name })
+			end)
+		end
+	end
+end
+
 -- ---------------- season-complete overlay ----------------
 local function seasonComplete()
 	local ov = label(dim, "SEASON COMPLETE", 40, GOLD, 0, Enum.Font.GothamBlack)
@@ -259,6 +355,18 @@ menuEvent.OnClientEvent:Connect(function(kind, data)
 		seasonsData = data.seasons; if seasonP.Visible then renderSeasons(seasonsData) end
 	elseif kind == "leveled" then
 		toast("LEVEL UP  —  Power Level " .. tostring(data.level), GOLD)
+	elseif kind == "shop" then
+		renderShop(data)
+	elseif kind == "coins" then
+		coinsLabel.Text = "Coins: " .. tostring(data) .. "  (Coins)"
+	elseif kind == "buyResult" then
+		if data.ok then
+			toast("UNLOCKED  —  " .. tostring(data.name), Color3.fromRGB(150, 220, 160))
+		elseif data.reason == "poor" then
+			toast("Not enough Coins for " .. tostring(data.name), Color3.fromRGB(230, 120, 120))
+		elseif data.reason == "owned" then
+			toast("Already owned", MUTED)
+		end
 	end
 end)
 if charEvent then

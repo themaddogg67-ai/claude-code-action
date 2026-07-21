@@ -90,6 +90,9 @@ WorldAtlas.StoryLocations = {
 	{ name = "The Swamplands",   kind = "region",   biome = "swamp",   controller = "Minus", season = 1,
 	  mapReady = true, builder = "SwamplandsBuilder", route = "SwamplandsCampaign",
 	  note = "The bayou where the campaign begins; den of Minus, the gator general. Season 1 — built." },
+	{ name = "The Shadowlands",  kind = "region",   biome = "shadow",  controller = "Null", season = 3,
+	  mapReady = true, builder = "ShadowlandsBuilder", route = "ShadowlandsCampaign",
+	  note = "Null's dark domain — army of darkness, shadow spires, the throne. Season 3 — built." },
 	{ name = "Valhalla",         kind = "planet",   biome = "stone",   controller = "Valkery", season = nil,
 	  note = "A planet full of Vikings — Valkery's homeworld." },
 	{ name = "Planet Sparta",    kind = "planet",   biome = "desert",  controller = "Ares", season = nil,
@@ -195,6 +198,7 @@ WorldAtlas.WarZones = { "Omnara", "Nexus Omnia", "Infinity Spire", "Parallax", "
 -- season id -> canonical location name (drives which map a season builds)
 WorldAtlas.SeasonLocations = {
 	[1] = "The Swamplands",
+	[3] = "The Shadowlands",
 	[5] = "Gildonia",
 	[7] = "Ruined City",
 	[8] = "Metro City",

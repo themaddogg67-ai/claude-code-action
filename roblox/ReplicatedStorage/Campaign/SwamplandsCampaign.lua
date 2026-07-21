@@ -25,6 +25,10 @@ SwamplandsCampaign.EnemyName = "Swamp Raider"
 SwamplandsCampaign.BossName  = "Minus"
 SwamplandsCampaign.VillainEnemyName = "Bayou Ranger"
 SwamplandsCampaign.VillainBoss      = "Titan"
+SwamplandsCampaign.Briefing =
+	"Minus's army stirs in the bayou. Wade in, cut through his raiders, and put down the gator general in his den."
+SwamplandsCampaign.VillainBriefing =
+	"The swamp is yours to hold for Minus. Rangers — and the hero Titan — have come to end the rise. Break them."
 
 SwamplandsCampaign.Stages = {
 	{ id = 1, district = "Muddy Banks",    markerName = "Stage1_MuddyBanks",    enemies = 3,

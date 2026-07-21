@@ -35,6 +35,8 @@ if not Registry then
 	warn("CampaignMenu: CampaignRegistry missing — menu disabled.")
 	return
 end
+local Shop = safeRequire(ReplicatedStorage:FindFirstChild("Campaign")
+	and ReplicatedStorage.Campaign:FindFirstChild("ShopCatalog"))
 
 -- client + server channels
 local menuEvent = ReplicatedStorage:FindFirstChild("CampaignMenuEvent")
@@ -71,31 +73,67 @@ end
 
 local progress = {}   -- player -> number of ladder entries unlocked (>=1)
 local xpOf = {}       -- player -> accumulated campaign XP
+local coinsOf = {}    -- player -> currency wallet
+local ownedOf = {}    -- player -> { [characterName] = true } extra characters bought
 
 local XP_PER_LEVEL   = 120
 local XP_PER_KILL    = 6
 local XP_PER_SEASON  = 120
+local COINS_PER_KILL   = Shop and Shop.CoinsPerKill or 3
+local COINS_PER_SEASON = Shop and Shop.CoinsPerSeason or 250
 local function levelFromXp(xp) return 1 + math.floor((xp or 0) / XP_PER_LEVEL) end
 
+-- owned set <-> "Name1,Name2" attribute string (attributes can't hold tables),
+-- so CharacterSelect can read the player's unlocked roster additions.
+local function ownedToString(set)
+	local names = {}
+	for name in pairs(set or {}) do names[#names + 1] = name end
+	table.sort(names)
+	return table.concat(names, ",")
+end
+local function pushOwnedAttr(player)
+	player:SetAttribute("OwnedCharacters", ownedToString(ownedOf[player]))
+end
+
 local function loadProgress(player)
-	local p, xp = 1, 0
+	local p, xp, coins, owned = 1, 0, 0, {}
 	if store then
 		local ok, data = pcall(function() return store:GetAsync("p_" .. player.UserId) end)
 		if ok then
 			if type(data) == "number" then p = math.max(1, data)          -- legacy record
-			elseif type(data) == "table" then p = math.max(1, data.progress or 1); xp = math.max(0, data.xp or 0) end
+			elseif type(data) == "table" then
+				p = math.max(1, data.progress or 1)
+				xp = math.max(0, data.xp or 0)
+				coins = math.max(0, data.coins or 0)
+				if type(data.owned) == "table" then
+					for _, name in ipairs(data.owned) do owned[name] = true end
+				end
+			end
 		end
 	end
 	progress[player] = math.clamp(p, 1, #LADDER)
 	xpOf[player] = xp
+	coinsOf[player] = coins
+	ownedOf[player] = owned
 	player:SetAttribute("CampaignProgress", progress[player])
 	player:SetAttribute("CampaignXP", xp)
 	player:SetAttribute("PowerLevel", levelFromXp(xp))
+	player:SetAttribute("Coins", coins)
+	pushOwnedAttr(player)
 end
 
 local function saveProgress(player)
 	if store and progress[player] then
-		pcall(function() store:SetAsync("p_" .. player.UserId, { progress = progress[player], xp = xpOf[player] or 0 }) end)
+		local ownedList = {}
+		for name in pairs(ownedOf[player] or {}) do ownedList[#ownedList + 1] = name end
+		pcall(function()
+			store:SetAsync("p_" .. player.UserId, {
+				progress = progress[player],
+				xp = xpOf[player] or 0,
+				coins = coinsOf[player] or 0,
+				owned = ownedList,
+			})
+		end)
 	end
 end
 
@@ -113,6 +151,25 @@ local function addXp(player, amount)
 	end
 end
 
+-- award currency; live attribute + client HUD update, persisted lazily
+local function addCoins(player, amount)
+	if not coinsOf[player] or not amount or amount <= 0 then return end
+	coinsOf[player] = coinsOf[player] + amount
+	player:SetAttribute("Coins", coinsOf[player])
+	menuEvent:FireClient(player, "coins", coinsOf[player])
+end
+
+-- route modules carry the per-faction mission briefings; cache the ones we load
+local campaignFolder = ReplicatedStorage:FindFirstChild("Campaign")
+local routeCache = {}
+local function routeModule(routeName)
+	if not routeName then return nil end
+	if routeCache[routeName] ~= nil then return routeCache[routeName] or nil end
+	local mod = safeRequire(campaignFolder and campaignFolder:FindFirstChild(routeName))
+	routeCache[routeName] = mod or false
+	return mod
+end
+
 -- payload the menu GUI renders (every registry season, flagged)
 local function seasonsPayload(player)
 	local unlocked = progress[player] or 1
@@ -122,12 +179,35 @@ local function seasonsPayload(player)
 	table.sort(all, function(a, b) return a.id < b.id end)
 	for _, s in ipairs(all) do
 		local pos = ladderPos(s.id)
+		local route = (s.status == "built") and routeModule(s.route) or nil
 		out[#out + 1] = {
 			id = s.id, title = s.title, boss = s.boss, summary = s.summary,
 			built = s.status == "built",
 			ladderPos = pos,
 			unlocked = (pos ~= nil) and (pos <= unlocked) or false,
+			-- per-faction story briefing shown on the faction-select card
+			briefing = route and route.Briefing or nil,
+			villainBriefing = route and route.VillainBriefing or nil,
+			heroBoss = route and route.BossName or s.boss,
+			villainBoss = route and route.VillainBoss or nil,
 		}
+	end
+	return out
+end
+
+-- payload the shop GUI renders: catalog items flagged owned/affordable
+local function shopPayload(player)
+	local owned = ownedOf[player] or {}
+	local coins = coinsOf[player] or 0
+	local out = { coins = coins, currency = Shop and Shop.Currency or "Coins", items = {} }
+	if Shop then
+		for _, item in ipairs(Shop.Items) do
+			out.items[#out.items + 1] = {
+				name = item.name, faction = item.faction, price = item.price, blurb = item.blurb,
+				owned = owned[item.name] == true,
+				affordable = coins >= item.price,
+			}
+		end
 	end
 	return out
 end
@@ -138,6 +218,26 @@ end
 menuEvent.OnServerEvent:Connect(function(player, action, payload)
 	if action == "requestSeasons" then
 		menuEvent:FireClient(player, "seasons", seasonsPayload(player))
+	elseif action == "requestShop" then
+		menuEvent:FireClient(player, "shop", shopPayload(player))
+	elseif action == "buy" and Shop then
+		local name = (type(payload) == "table") and payload.name or payload
+		local item = (type(name) == "string") and Shop.get(name) or nil
+		if not item then
+			menuEvent:FireClient(player, "buyResult", { name = name, ok = false, reason = "unknown" })
+		elseif (ownedOf[player] or {})[item.name] then
+			menuEvent:FireClient(player, "buyResult", { name = item.name, ok = false, reason = "owned" })
+		elseif (coinsOf[player] or 0) < item.price then
+			menuEvent:FireClient(player, "buyResult", { name = item.name, ok = false, reason = "poor" })
+		else
+			coinsOf[player] = coinsOf[player] - item.price
+			ownedOf[player][item.name] = true
+			player:SetAttribute("Coins", coinsOf[player])
+			pushOwnedAttr(player)                     -- CharacterSelect picks it up live
+			saveProgress(player)                      -- purchases are worth a write
+			menuEvent:FireClient(player, "buyResult", { name = item.name, ok = true, coins = coinsOf[player] })
+			menuEvent:FireClient(player, "shop", shopPayload(player))
+		end
 	elseif action == "start" and type(payload) == "table" then
 		local seasonId = payload.seasonId
 		local faction = (payload.faction == "villain") and "villain" or "hero"
@@ -156,6 +256,7 @@ seasonCompletedEvent.Event:Connect(function(seasonId)
 	if not pos then return end
 	for _, player in ipairs(Players:GetPlayers()) do
 		addXp(player, XP_PER_SEASON)
+		addCoins(player, COINS_PER_SEASON)
 		local cur = progress[player] or 1
 		if pos >= cur and pos + 1 <= #LADDER then
 			progress[player] = pos + 1
@@ -170,6 +271,7 @@ end)
 grantXpEvent.Event:Connect(function(amount)
 	for _, player in ipairs(Players:GetPlayers()) do
 		addXp(player, amount or XP_PER_KILL)
+		addCoins(player, COINS_PER_KILL)
 	end
 end)
 

@@ -388,16 +388,16 @@ themed models. Edit `HERO_STARTERS` / `VILLAIN_STARTERS` / `VILLAIN_WEAK` in
 
 **Every fight flips by faction.** The campaign now runs from the chosen side's
 perspective. Heroes fight the villain forces (e.g. Metro City: Manderin
-Security, boss Manderin). Villains fight the *opposite* — the heroes/law trying
+Security, boss Manderin). Villains fight the _opposite_ — the heroes/law trying
 to stop them — with a hero as their final boss and inverted objectives:
 
-| Season | Hero enemy → boss | Villain enemy → boss |
-| --- | --- | --- |
-| 1 Swamplands | Swamp Raider → Minus | Bayou Ranger → **Titan** |
-| 2 Gildonia | Void Soldier → Void Overlord | World Warrior → **Red Rocket** |
-| 3 Ruined City | Rioter → Omega | Peacekeeper → **Patriot** |
-| 4 Metro City | Manderin Security → Manderin | Resistance Fighter → **Looney** |
-| 5 Quantum City | Quantum Sentinel → Anonymous | Hero Intruder → **Chasm** |
+| Season         | Hero enemy → boss            | Villain enemy → boss            |
+| -------------- | ---------------------------- | ------------------------------- |
+| 1 Swamplands   | Swamp Raider → Minus         | Bayou Ranger → **Titan**        |
+| 2 Gildonia     | Void Soldier → Void Overlord | World Warrior → **Red Rocket**  |
+| 3 Ruined City  | Rioter → Omega               | Peacekeeper → **Patriot**       |
+| 4 Metro City   | Manderin Security → Manderin | Resistance Fighter → **Looney** |
+| 5 Quantum City | Quantum Sentinel → Anonymous | Hero Intruder → **Chasm**       |
 
 Season 1 also flips its mini-boss: heroes beat down **El Primo Libre**; villains
 take down the hero **Champion**. Each stage has a `villainObjective` (or a
@@ -409,3 +409,53 @@ enemies, boss, mini-boss, and objective text at runtime.
 `ArmorDamageMult` climbs from 0.6 toward 1.0 as they level (+0.08/level — full
 strength by ~level 6), and heroes get a mild scaling bonus; the multiplier
 updates live on level-up. A "LEVEL UP" toast shows in the menu.
+
+## Season 3 map — The Shadowlands ("Orders From Above")
+
+A third fully built map: a shadow-biome realm of near-black ground and purple
+void light, six sectors deep, ending at **Null's Throne**. Same route-module
+contract as every other map, so the shared controller runs it unchanged. Villain
+side flips it — you fight the **Lightbringers** and their champion the **Golden
+Knight** instead of Null.
+
+| File                                                 | Studio location                                      | Type               |
+| ---------------------------------------------------- | ---------------------------------------------------- | ------------------ |
+| `ServerStorage/ShadowlandsBuilder.lua`               | `ServerStorage > ShadowlandsBuilder`                 | ModuleScript (new) |
+| `ReplicatedStorage/Campaign/ShadowlandsCampaign.lua` | `ReplicatedStorage > Campaign > ShadowlandsCampaign` | ModuleScript (new) |
+
+Sectors: Broken Gate → Ashen Wastes → Shadow Spires → The Dark Bastion → Throne
+Approach → Null's Throne. It's registered as Season 3 `status = "built"` in
+`CampaignRegistry` and added to `WorldAtlas` (`SeasonLocations[3]`).
+
+## Faction story briefings on the season card
+
+Every built route carries a `Briefing` (hero) and `VillainBriefing` (villain)
+string. When you pick a season and reach **PICK YOUR SIDE**, each side's card now
+shows that season's mission briefing and the final foe you'll face on that side
+(hero boss vs. villain boss), so the two perspectives read differently before you
+commit. `CampaignMenu.server` reads the strings from the route modules and sends
+them in the season payload; `CampaignMenu.client` renders them per card.
+
+## Currency + character shop (unlock extra characters)
+
+Alongside XP, the campaign now pays out **Coins**: +3 per enemy defeated and +250
+per season cleared (`ShopCatalog.CoinsPerKill` / `CoinsPerSeason`). Coins and the
+set of owned characters persist in the same DataStore record as progress/XP.
+
+The **SHOP** button on the main menu opens a catalog of 17 extra characters — 7
+heroes (Champion, Jumper, Titan, Red Rocket, Patriot, Valkery, Mercy) and 10
+villains (El Primo Libre, Carnage, Golden Knight, Minus, Void Overlord, Null,
+Manderin, Nemesis, The Anonymous, Omega) — each a real boss/heavy with its own
+`CharacterKits` moveset and `CharacterModels` look. Buying one (server validates
+coins + ownership, then persists) unlocks it in **Character Select** under its
+faction tab, next to the free starters. The roster refreshes live the moment a
+purchase lands.
+
+| File                                         | Studio location                              | Type               |
+| -------------------------------------------- | -------------------------------------------- | ------------------ |
+| `ReplicatedStorage/Campaign/ShopCatalog.lua` | `ReplicatedStorage > Campaign > ShopCatalog` | ModuleScript (new) |
+
+`CampaignMenu.server` owns the coin wallet + purchase validation (single writer to
+the DataStore record); `CharacterSelect.server` reads the player's owned set from
+the `OwnedCharacters` attribute and folds it into the faction rosters;
+`CampaignMenu.client` adds the shop panel, coin display, and buy buttons.
