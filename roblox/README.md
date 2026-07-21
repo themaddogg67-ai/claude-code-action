@@ -469,18 +469,20 @@ no Coins), and each stays pickable only while the story keeps them alive: they
 appear in Character Select for the seasons inside their window, so you fight Void
 Overlord (S5), Null (S3–4), and Omega (S7) with the Warriors' real kits.
 
-| Warrior    | Playable seasons | Notes                           |
-| ---------- | ---------------- | ------------------------------- |
-| Red Rocket | 3 – 7            | Leader of the Warriors          |
-| Titan      | 3 – 7            |                                 |
-| Champion   | 3 – 7            |                                 |
-| Patriot    | 3 – 7            |                                 |
-| Jumper     | 3 – 7            |                                 |
-| Valkery    | 3 – 4            | Cut down by Null in the S4 hunt |
+| Warrior     | Playable seasons | Notes                                 |
+| ----------- | ---------------- | ------------------------------------- |
+| Red Rocket  | 3 – 7            | Leader of the Warriors                |
+| Dead Dash   | 3 – 7            |                                       |
+| Water Woman | 3 – 7            | Also a free starter (always pickable) |
+| Liberty     | 3 – 7            |                                       |
+| Jumper      | 3 – 7            |                                       |
+| Frost       | 3 – 7            | Also a free starter (always pickable) |
+| Valkery     | 3 – 4            | Cut down by Null in the S4 hunt       |
 
 From Season 8 on they're gone from the roster. The gold-badged Warrior cards show
 up on the hero side of Character Select only when the season you're starting is in
-their window.
+their window. Frost and Water Woman are also base starters, so they stay pickable
+everywhere — they're listed here as canonical members of the team.
 
 | File                                                | Studio location                                     | Type               |
 | --------------------------------------------------- | --------------------------------------------------- | ------------------ |

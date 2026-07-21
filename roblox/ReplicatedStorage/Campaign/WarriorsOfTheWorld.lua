@@ -27,15 +27,18 @@ WarriorsOfTheWorld.GroupName   = "Warriors of the World"
 WarriorsOfTheWorld.UnlockSeason = 3   -- first season they're playable
 
 -- fromSeason/untilSeason are inclusive season ids from the CampaignRegistry.
+-- (Frost and Water Woman are also free hero STARTERS, so they're always pickable;
+-- listing them here just marks them as canonical Warriors of the World.)
 WarriorsOfTheWorld.Members = {
-	{ name = "Red Rocket", fromSeason = 3, untilSeason = 7, blurb = "Leader of the Warriors — explosive charges and rocket rushes." },
-	{ name = "Titan",      fromSeason = 3, untilSeason = 7, blurb = "The living fortress. Slow, unstoppable, earth-shaking blows." },
-	{ name = "Champion",   fromSeason = 3, untilSeason = 7, blurb = "The people's brawler — raw strength and relentless combos." },
-	{ name = "Patriot",    fromSeason = 3, untilSeason = 7, blurb = "The super-soldier — balanced strikes and an iron guard." },
-	{ name = "Jumper",     fromSeason = 3, untilSeason = 7, blurb = "The scout who warned Earth — blinding speed and reach." },
+	{ name = "Red Rocket",  fromSeason = 3, untilSeason = 7, blurb = "Leader of the Warriors — flame charges and rocket rushes." },
+	{ name = "Dead Dash",   fromSeason = 3, untilSeason = 7, blurb = "The storm speedster — energy blurs and lightning-quick strikes." },
+	{ name = "Water Woman", fromSeason = 3, untilSeason = 7, blurb = "Water beam, water spheres, a tide ward, and lashing tentacles." },
+	{ name = "Liberty",     fromSeason = 3, untilSeason = 7, blurb = "Storm-caller of liberty — lightning bolts and thunder." },
+	{ name = "Jumper",      fromSeason = 3, untilSeason = 7, blurb = "The scout who warned Earth — rifts, blinks, and reach." },
+	{ name = "Frost",       fromSeason = 3, untilSeason = 7, blurb = "Ice beam that slows then freezes, ice balls, a shattering ward." },
 	-- Valkery falls to Null during the Season 4 hunt, so she's cut from the
 	-- roster afterward.
-	{ name = "Valkery",    fromSeason = 3, untilSeason = 4, blurb = "Winged warrior — aerial dives and twin blades. Falls to Null." },
+	{ name = "Valkery",     fromSeason = 3, untilSeason = 4, blurb = "Winged warrior — aerial dives and twin blades. Falls to Null." },
 }
 
 function WarriorsOfTheWorld.get(name)
