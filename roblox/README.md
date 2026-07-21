@@ -201,9 +201,9 @@ Blue's loops in space, whose look is **pulled from the WorldAtlas `digital`
 biome** (teal/cyan neon, dark platforms). It plugs into the same controller,
 enemies, HUD, and boss system with zero changes to them.
 
-| File | Studio location | Type |
-| --- | --- | --- |
-| `ServerStorage/QuantumCityBuilder.lua` | `ServerStorage > QuantumCityBuilder` | ModuleScript (new) |
+| File                                                 | Studio location                                      | Type               |
+| ---------------------------------------------------- | ---------------------------------------------------- | ------------------ |
+| `ServerStorage/QuantumCityBuilder.lua`               | `ServerStorage > QuantumCityBuilder`                 | ModuleScript (new) |
 | `ReplicatedStorage/Campaign/QuantumCityCampaign.lua` | `ReplicatedStorage > Campaign > QuantumCityCampaign` | ModuleScript (new) |
 
 Floating archipelago over the void: a central **Nexus Core** (Blue's loop) with
