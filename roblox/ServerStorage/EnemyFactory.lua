@@ -276,8 +276,52 @@ function EnemyFactory.spawnBoss(pos, opts)
 	local moves = opts.moves or BOSS_MOVES     -- villain's real kit, or the default set
 	local aggro = opts.aggro or 300
 	local meleeRange = opts.meleeRange or 9
+	local baseCast = opts.castInterval or 3.2
 	local meleeCd, castCd = 0, os.clock() + 2
 	local moveIndex = 0
+
+	-- PHASE TWO: at 50% HP the boss enrages once — faster casts, +35% damage,
+	-- an arena-wide knockback nova, a red aura, and two summoned adds.
+	local enraged = false
+	local dmgMult, castMult = 1, 1
+	local function enrage()
+		if enraged then return end
+		enraged = true
+		dmgMult, castMult = 1.35, 0.62
+		model:SetAttribute("Enraged", true)
+		-- red rage aura on the torso
+		local torso = model:FindFirstChild("Torso") or hrp
+		local att = Instance.new("Attachment"); att.Parent = torso
+		local e = Instance.new("ParticleEmitter")
+		e.Texture = "rbxasset://textures/particles/fire_main.dds"
+		e.Color = ColorSequence.new(Color3.fromRGB(255, 50, 40)); e.LightEmission = 0.9
+		e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 3), NumberSequenceKeypoint.new(1, 0) })
+		e.Lifetime = NumberRange.new(0.5, 0.9); e.Rate = 28; e.Speed = NumberRange.new(2, 5)
+		e.Acceleration = Vector3.new(0, 8, 0); e.Parent = att
+		-- knockback nova + shake
+		for _, plr in ipairs(Players:GetPlayers()) do
+			local pc = plr.Character
+			local pr = pc and pc:FindFirstChild("HumanoidRootPart")
+			if pr and (pr.Position - hrp.Position).Magnitude < 40 then
+				local dir = (pr.Position - hrp.Position)
+				dir = dir.Magnitude > 0 and dir.Unit or Vector3.yAxis
+				pr.AssemblyLinearVelocity = dir * 90 + Vector3.new(0, 30, 0)
+				meleePlayer(hrp, pc, 14, 0)
+			end
+		end
+		if engine then
+			pcall(function() engine.run(nil, model, { type = "aoe", radius = 22, damage = 18, knockback = 70, up = 25, style = "shadow" }, hrp.Position) end)
+		end
+		-- two adds
+		for i = -1, 1, 2 do
+			EnemyFactory.spawnGuard(hrp.Position + Vector3.new(i * 8, 3, 0), {
+				name = (opts.name or "Boss") .. " Guard", parent = opts.parent, health = 140,
+			})
+		end
+	end
+	hum.HealthChanged:Connect(function(h)
+		if not enraged and h > 0 and h / hum.MaxHealth <= 0.5 then enrage() end
+	end)
 
 	task.spawn(function()
 		while model.Parent and hum.Health > 0 do
@@ -286,14 +330,21 @@ function EnemyFactory.spawnBoss(pos, opts)
 				hum:MoveTo(targetRoot.Position)
 				-- melee when close
 				if dist <= meleeRange and os.clock() >= meleeCd then
-					meleeCd = os.clock() + 1.2
-					meleePlayer(hrp, targetRoot.Parent, opts.meleeDamage or 16, opts.knockback or 40)
+					meleeCd = os.clock() + (enraged and 0.85 or 1.2)
+					meleePlayer(hrp, targetRoot.Parent, (opts.meleeDamage or 16) * dmgMult, opts.knockback or 40)
 				end
 				-- cast a real ability on a timer
 				if engine and #moves > 0 and os.clock() >= castCd then
-					castCd = os.clock() + (opts.castInterval or 3.2)
+					castCd = os.clock() + baseCast * castMult
 					moveIndex = (moveIndex % #moves) + 1
-					local def = moves[moveIndex]
+					local base = moves[moveIndex]
+					local def = base
+					if enraged then    -- amplified copy while enraged
+						def = {}
+						for k, v in pairs(base) do def[k] = v end
+						if def.damage then def.damage = def.damage * dmgMult end
+						if def.tickDamage then def.tickDamage = def.tickDamage * dmgMult end
+					end
 					local ok = pcall(function()
 						engine.run(nil, model, def, targetRoot.Position)
 					end)

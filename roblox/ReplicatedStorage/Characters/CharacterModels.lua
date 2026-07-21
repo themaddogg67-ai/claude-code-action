@@ -176,4 +176,86 @@ M["Dragon"] = { scale = 1.65, body = { 16, 18, 26 }, limbs = { 30, 40, 70 }, ski
 M["Channel"] = { scale = 1.5, body = { 22, 24, 30 }, limbs = { 26, 28, 36 }, material = "Metal",
 	tvHead = true, screen = { 190, 215, 220 }, aura = "energy", auraColor = { 90, 220, 210 }, health = 1900 }
 
+-- ======================= EXTENDED ROSTER (from the four sheets) =======================
+-- Colors read off the art; a few are description-based where the image isn't the guide.
+
+M["Jumper"]        = { body = { 24, 20, 34 }, limbs = { 22, 18, 32 }, hair = { 16, 14, 20 }, aura = "void", auraColor = { 160, 70, 255 }, eyes = { 180, 110, 255 } }
+M["Prometheus"]    = { body = { 30, 96, 175 }, limbs = { 210, 180, 90 }, skin = { 90, 60, 46 }, hair = { 20, 30, 60 }, aura = "energy", auraColor = { 90, 180, 255 }, eyes = { 130, 210, 255 } }
+M["Bullet Train"]  = { body = { 22, 26, 40 }, limbs = { 34, 60, 120 }, eyeStyle = "visor", eyes = { 80, 180, 255 }, aura = "electric" }
+M["Patriot"]       = { body = { 40, 60, 140 }, limbs = { 170, 40, 44 }, skin = { 215, 180, 150 }, hair = { 60, 40, 24 }, emblem = { text = "★", color = { 245, 245, 250 }, plate = { 40, 60, 140 } }, eyes = { 120, 200, 255 } }
+M["Champion Bot"]  = { scale = 1.15, body = { 96, 102, 114 }, limbs = { 78, 84, 96 }, material = "Metal", eyeStyle = "single", eyes = { 80, 180, 255 }, chestEye = { 80, 180, 255 } }
+M["Bone Crusher"]  = { scale = 1.15, body = { 196, 186, 158 }, limbs = { 170, 160, 134 }, skin = { 210, 200, 172 }, horns = { 150, 140, 116 }, eyes = { 235, 60, 50 } }
+M["Liberty"]       = { body = { 40, 60, 120 }, limbs = { 34, 50, 105 }, skin = { 210, 172, 146 }, hair = { 235, 240, 248 }, aura = "electric", eyes = { 120, 200, 255 } }
+M["Battle Squid"]  = { scale = 1.1, body = { 90, 40, 140 }, limbs = { 74, 32, 120 }, tentacles = 2, tentacleColor = { 80, 34, 128 }, tentacleTip = { 190, 120, 255 }, aura = "electric", eyes = { 200, 120, 255 } }
+M["Reddon"]        = { body = { 24, 22, 26 }, limbs = { 170, 34, 38 }, eyes = { 235, 50, 50 }, aura = "electric", auraColor = { 230, 60, 60 } }
+M["Caped Crusader"] = { body = { 36, 88, 52 }, limbs = { 30, 74, 44 }, cape = { 235, 205, 70 }, aura = "energy", auraColor = { 120, 220, 140 }, eyes = { 120, 230, 150 } }
+M["Golden Girl"]   = { body = { 235, 190, 60 }, limbs = { 210, 165, 45 }, skin = { 240, 205, 90 }, hair = { 245, 220, 120 }, aura = "gold", eyes = { 255, 240, 150 } }
+M["Hela"]          = { body = { 40, 120, 70 }, limbs = { 235, 236, 240 }, skin = { 210, 172, 146 }, hair = { 20, 30, 24 }, aura = "holy", auraColor = { 120, 255, 160 }, eyes = { 150, 255, 170 } }
+M["X"]             = { body = { 26, 22, 26 }, limbs = { 130, 34, 36 }, skin = { 210, 172, 146 }, hair = { 16, 14, 18 }, aura = "fire", eyes = { 255, 120, 70 } }
+M["Estiss"]        = { body = { 210, 200, 180 }, limbs = { 180, 168, 146 }, skin = { 215, 180, 150 }, hair = { 235, 235, 240 }, beard = { 235, 235, 240 }, aura = "gold", eyes = { 255, 210, 120 } }
+M["Gale"]          = { body = { 120, 124, 132 }, limbs = { 96, 100, 108 }, skin = { 210, 172, 146 }, hair = { 235, 235, 240 }, beard = { 235, 235, 240 }, aura = "gold", eyes = { 255, 220, 130 } }
+M["Morbius"]       = { scale = 1.1, body = { 22, 18, 30 }, limbs = { 20, 16, 28 }, hood = { 16, 12, 24 }, hoodGlow = { 160, 70, 255 }, tentacles = 2, tentacleColor = { 24, 16, 34 }, tentacleTip = { 160, 70, 255 }, aura = "void" }
+M["Star Man"]      = { body = { 235, 236, 242 }, limbs = { 210, 180, 90 }, skin = { 210, 172, 146 }, hair = { 90, 70, 40 }, emblem = { text = "★", color = { 245, 205, 80 }, plate = { 235, 236, 242 } }, aura = "holy", eyes = { 255, 235, 150 } }
+M["Zero"]          = { body = { 18, 16, 26 }, limbs = { 16, 14, 24 }, aura = "cosmic", eyes = { 150, 120, 255 }, emblem = { text = "O", color = { 150, 120, 255 }, plate = { 18, 16, 26 } } }
+M["Beast"]         = { scale = 1.35, body = { 40, 70, 140 }, limbs = { 34, 60, 125 }, eyes = { 235, 50, 50 }, chestEye = { 235, 50, 50 }, aura = "electric" }
+M["Wolf"]          = { body = { 40, 42, 48 }, limbs = { 34, 36, 42 }, skin = { 46, 48, 54 }, eyes = { 235, 210, 90 } }
+M["Golddon"]       = { body = { 235, 190, 60 }, limbs = { 210, 165, 45 }, skin = { 240, 205, 90 }, aura = "gold", eyes = { 255, 240, 150 } }
+M["Golden Knight"] = { scale = 1.1, body = { 225, 185, 70 }, limbs = { 205, 165, 55 }, material = "Metal", aura = "gold", eyes = { 255, 240, 150 } }
+M["Electra"]       = { body = { 40, 60, 120 }, limbs = { 34, 50, 105 }, skin = { 210, 172, 146 }, hair = { 20, 24, 40 }, aura = "electric", eyes = { 120, 200, 255 } }
+M["Valkery"]       = { body = { 60, 80, 120 }, limbs = { 180, 186, 198 }, skin = { 210, 172, 146 }, hair = { 200, 180, 120 }, cape = { 90, 110, 150 }, aura = "holy", eyes = { 150, 210, 255 } }
+M["Nejhora"]       = { scale = 1.55, body = { 40, 70, 150 }, limbs = { 34, 60, 135 }, aura = "cosmic", auraColor = { 90, 150, 255 }, eyes = { 120, 200, 255 } }
+M["Super Guy"]     = { body = { 40, 60, 140 }, limbs = { 40, 56, 130 }, skin = { 215, 180, 150 }, hair = { 30, 26, 30 }, cape = { 150, 30, 34 }, emblem = { text = "S", color = { 200, 40, 44 }, plate = { 40, 60, 140 } }, eyes = { 235, 60, 60 } }
+M["Jhaunju"]       = { body = { 24, 22, 28 }, limbs = { 120, 30, 34 }, skin = { 210, 172, 146 }, hair = { 235, 235, 240 }, aura = "cosmic", auraColor = { 255, 200, 120 }, eyes = { 255, 210, 120 } }
+M["Mercy"]         = { body = { 22, 18, 30 }, limbs = { 40, 26, 56 }, skin = { 205, 168, 146 }, hair = { 235, 235, 240 }, aura = "void", eyes = { 190, 120, 255 } }
+M["Puppet Master"] = { body = { 22, 20, 26 }, limbs = { 20, 18, 24 }, eyes = { 235, 50, 50 }, aura = "void", auraColor = { 160, 60, 220 } }
+
+M["Atom"]          = { body = { 22, 26, 22 }, limbs = { 20, 24, 20 }, aura = "green", eyes = { 120, 255, 120 } }
+M["Phoenix"]       = { body = { 40, 20, 18 }, limbs = { 120, 40, 24 }, skin = { 210, 172, 146 }, hair = { 20, 16, 16 }, cape = { 180, 60, 24 }, aura = "fire", eyes = { 255, 150, 60 } }
+M["Fission"]       = { body = { 24, 24, 30 }, limbs = { 40, 44, 54 }, skin = { 210, 172, 146 }, hair = { 235, 235, 240 }, aura = "energy", eyes = { 120, 200, 255 } }
+M["MechaManiac"]   = { scale = 1.2, body = { 30, 34, 40 }, limbs = { 44, 48, 56 }, material = "Metal", eyes = { 120, 255, 120 }, aura = "energy", auraColor = { 120, 255, 120 } }
+M["The Collector"] = { body = { 30, 22, 40 }, limbs = { 26, 20, 36 }, aura = "void", auraColor = { 150, 90, 220 }, eyes = { 180, 130, 255 } }
+M["Blue Jay"]      = { body = { 40, 90, 190 }, limbs = { 34, 78, 170 }, cape = { 60, 130, 220 }, eyeStyle = "visor", eyes = { 120, 210, 255 }, aura = "energy" }
+M["Yellow Jacket"] = { body = { 235, 200, 60 }, limbs = { 30, 30, 34 }, cape = { 235, 200, 60 }, aura = "energy", auraColor = { 255, 220, 90 }, eyes = { 255, 230, 120 } }
+M["Slimey"]        = { body = { 90, 210, 90 }, limbs = { 76, 190, 78 }, skin = { 120, 230, 110 }, aura = "green", eyes = { 200, 255, 190 } }
+M["Powernoid"]     = { body = { 28, 24, 28 }, limbs = { 150, 40, 90 }, material = "Metal", aura = "energy", auraColor = { 230, 70, 150 }, eyes = { 235, 70, 150 } }
+M["Punisher"]      = { body = { 22, 20, 24 }, limbs = { 34, 30, 34 }, eyes = { 235, 40, 40 }, aura = "electric", auraColor = { 230, 50, 50 } }
+M["2z"]            = { body = { 170, 34, 38 }, limbs = { 40, 60, 150 }, tentacles = 4, tentacleColor = { 30, 30, 34 }, tentacleTip = { 200, 40, 44 }, eyes = { 240, 245, 255 }, aura = "electric" }
+M["Cockroach"]     = { body = { 46, 36, 28 }, limbs = { 38, 30, 22 }, horns = { 30, 24, 18 }, eyes = { 235, 60, 50 } }
+M["Juggernaut"]    = { scale = 1.25, body = { 30, 32, 40 }, limbs = { 44, 46, 54 }, horns = { 26, 28, 34 }, eyes = { 90, 180, 255 } }
+M["Scrapatron"]    = { scale = 1.3, body = { 70, 78, 66 }, limbs = { 58, 64, 54 }, material = "Metal", aura = "green", eyes = { 120, 255, 120 } }
+M["Celcius"]       = { body = { 150, 205, 240 }, limbs = { 130, 190, 230 }, skin = { 210, 235, 250 }, hair = { 240, 248, 255 }, aura = "ice", eyes = { 170, 235, 255 } }
+M["Fahrenheit"]    = { body = { 40, 20, 18 }, limbs = { 130, 40, 22 }, aura = "fire", eyes = { 255, 130, 50 } }
+M["Ultratron"]     = { scale = 1.25, body = { 28, 26, 30 }, limbs = { 42, 40, 44 }, material = "Metal", eyeStyle = "single", eyes = { 235, 50, 40 }, aura = "fire", auraColor = { 230, 60, 40 } }
+M["Omnicron"]      = { scale = 1.45, body = { 26, 28, 34 }, limbs = { 40, 44, 52 }, material = "Metal", eyes = { 235, 50, 40 }, chestEye = { 235, 50, 40 } }
+M["Alien X"]       = { body = { 20, 20, 26 }, limbs = { 18, 18, 24 }, aura = "electric", eyes = { 120, 200, 255 } }
+M["The One Who Laughs"] = { body = { 22, 18, 28 }, limbs = { 20, 16, 26 }, hair = { 60, 200, 90 }, aura = "void", auraColor = { 170, 70, 255 }, eyes = { 150, 255, 120 } }
+M["Bloodbath"]     = { scale = 1.3, body = { 130, 20, 24 }, limbs = { 104, 16, 20 }, aura = "fire", auraColor = { 220, 30, 40 }, eyes = { 255, 60, 50 } }
+M["Dark Looney"]   = { body = { 14, 14, 18 }, limbs = { 12, 12, 16 }, eyes = { 235, 50, 50 }, aura = "void" }
+M["The Anaconda"]  = { scale = 1.4, body = { 40, 110, 60 }, limbs = { 34, 96, 52 }, aura = "cosmic", auraColor = { 120, 255, 140 }, eyes = { 150, 255, 150 } }
+M["Purpurs"]       = { scale = 1.6, body = { 90, 40, 150 }, limbs = { 76, 34, 130 }, cape = { 70, 30, 120 }, aura = "void", auraColor = { 160, 70, 255 }, eyes = { 200, 120, 255 } }
+M["Monster Boy"]   = { body = { 40, 120, 60 }, limbs = { 34, 104, 52 }, aura = "green", eyes = { 150, 255, 150 } }
+M["Scar"]          = { scale = 1.1, body = { 150, 110, 60 }, limbs = { 130, 94, 50 }, hair = { 180, 120, 50 }, eyes = { 245, 210, 90 } }
+M["Toxic"]         = { body = { 30, 46, 30 }, limbs = { 40, 60, 40 }, aura = "green", eyes = { 150, 255, 120 } }
+M["Rocky"]         = { body = { 24, 22, 30 }, limbs = { 22, 20, 28 }, hair = { 16, 14, 20 }, aura = "energy", auraColor = { 170, 90, 255 }, eyes = { 190, 120, 255 } }
+M["Ultramega"]     = { scale = 1.55, body = { 20, 20, 26 }, limbs = { 18, 18, 24 }, hair = { 200, 202, 208 }, cape = { 14, 14, 20 }, aura = "cosmic", emblem = { text = "Ω", color = { 235, 60, 50 }, plate = { 20, 20, 26 } }, eyes = { 240, 245, 255 } }
+M["Midas"]         = { body = { 230, 185, 55 }, limbs = { 205, 160, 45 }, skin = { 240, 205, 90 }, aura = "gold", eyes = { 255, 240, 150 } }
+M["Ares"]          = { scale = 1.1, body = { 150, 30, 34 }, limbs = { 120, 24, 28 }, material = "Metal", horns = { 100, 20, 24 }, eyes = { 255, 80, 60 } }
+M["Kratos"]        = { scale = 1.1, body = { 180, 175, 165 }, limbs = { 160, 155, 146 }, skin = { 195, 190, 180 }, eyes = { 235, 60, 50 } }
+M["Infinity"]      = { body = { 24, 24, 34 }, limbs = { 34, 34, 50 }, hair = { 20, 20, 30 }, aura = "cosmic", auraColor = { 120, 200, 255 }, eyes = { 130, 220, 255 } }
+M["Cosmo"]         = { body = { 18, 16, 28 }, limbs = { 16, 14, 26 }, aura = "cosmic", eyes = { 180, 130, 255 } }
+M["Apex"]          = { body = { 26, 24, 28 }, limbs = { 22, 20, 24 }, eyes = { 245, 210, 90 } }
+M["Heat Wave"]     = { body = { 40, 20, 18 }, limbs = { 130, 44, 24 }, aura = "fire", eyes = { 255, 140, 50 } }
+M["Blaze"]         = { body = { 40, 20, 18 }, limbs = { 150, 40, 22 }, aura = "fire", eyes = { 255, 120, 50 } }
+M["Ghost"]         = { body = { 150, 160, 175 }, limbs = { 135, 145, 160 }, aura = "energy", auraColor = { 150, 200, 255 }, eyes = { 200, 230, 255 } }
+M["Volt"]          = { body = { 20, 20, 28 }, limbs = { 18, 18, 26 }, aura = "electric", eyes = { 120, 200, 255 } }
+M["Blackout"]      = { body = { 14, 12, 18 }, limbs = { 12, 10, 16 }, aura = "void", eyes = { 170, 90, 255 } }
+M["Void Walker"]   = { body = { 20, 16, 30 }, limbs = { 18, 14, 28 }, aura = "void", eyes = { 180, 110, 255 } }
+M["Virgil"]        = { body = { 26, 20, 38 }, limbs = { 22, 18, 34 }, aura = "void", auraColor = { 150, 90, 220 }, eyes = { 180, 120, 255 } }
+M["Champion"]      = { body = { 40, 56, 36 }, limbs = { 34, 48, 30 }, skin = { 210, 172, 146 }, eyes = { 150, 220, 120 } }
+M["Lockdown"]      = { body = { 22, 20, 24 }, limbs = { 34, 30, 34 }, eyeStyle = "single", eyes = { 235, 50, 40 }, aura = "energy", auraColor = { 230, 60, 50 } }
+M["Fallout"]       = { body = { 40, 38, 22 }, limbs = { 60, 56, 30 }, aura = "green", eyes = { 235, 60, 50 } }
+M["Bloody Soldier"] = { body = { 40, 18, 20 }, limbs = { 120, 24, 28 }, skin = { 205, 168, 146 }, hair = { 235, 235, 240 }, aura = "fire", auraColor = { 220, 30, 40 }, eyes = { 255, 60, 50 } }
+M["Nightmare"]     = { scale = 1.5, body = { 14, 14, 18 }, limbs = { 12, 12, 16 }, hood = { 10, 10, 14 }, hoodGlow = { 245, 210, 60 }, cape = { 10, 10, 14 }, aura = "void", health = 2200 }
+M["Star Forge"]    = M["Starforge"]   -- alias for the alternate spelling on the sheet
+
 return M
