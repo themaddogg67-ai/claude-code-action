@@ -51,6 +51,21 @@ MetroCityCampaign.Districts = {
 -- who you fight through the campaign
 MetroCityCampaign.EnemyName = "Manderin Security"
 MetroCityCampaign.BossName  = "Manderin"
+-- VILLAIN side: enforce Manderin's regime, hunting the resistance — and Looney,
+-- the hero who keeps saving the city, is your final foe.
+MetroCityCampaign.VillainEnemyName = "Resistance Fighter"
+MetroCityCampaign.VillainBoss      = "Looney"
+MetroCityCampaign.VillainObjectives = {
+	[1] = "Round up the residential dissidents.",
+	[2] = "Secure the plaza for Manderin.",
+	[3] = "Lock down the security checkpoint.",
+	[4] = "Purge the tech district rebels.",
+	[5] = "Seize the industrial plants.",
+	[6] = "Clear the docks of smugglers.",
+	[7] = "Sweep the undercity hideouts.",
+	[8] = "Win the arena for the regime.",
+	[9] = "Manderin Tower — put down Looney.",
+}
 
 -- ordered mission route (marker names match beacons the builder creates:
 -- "Stage<id>_<DistrictWithoutSpaces>"). `enemies` = guards to defeat before the

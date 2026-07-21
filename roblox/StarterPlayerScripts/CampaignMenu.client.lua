@@ -238,11 +238,27 @@ local function seasonComplete()
 end
 
 -- ---------------- wiring ----------------
+local function toast(text, col)
+	local t = Instance.new("TextLabel")
+	t.Size = UDim2.new(0, 360, 0, 40); t.Position = UDim2.new(0.5, -180, 0, 90); t.AnchorPoint = Vector2.new(0, 0)
+	t.BackgroundColor3 = Color3.fromRGB(14, 18, 28); t.BackgroundTransparency = 0.1
+	t.Font = Enum.Font.GothamBold; t.TextSize = 18; t.TextColor3 = col or GOLD; t.Text = text
+	t.Parent = gui; corner(t, 8); stroke(t, col or GOLD, 0.3)
+	gui.Enabled = true
+	TweenService:Create(t, TweenInfo.new(0.4), { Position = UDim2.new(0.5, -180, 0, 60) }):Play()
+	task.delay(2.2, function()
+		TweenService:Create(t, TweenInfo.new(0.5), { BackgroundTransparency = 1, TextTransparency = 1 }):Play()
+		task.delay(0.6, function() t:Destroy() end)
+	end)
+end
+
 menuEvent.OnClientEvent:Connect(function(kind, data)
 	if kind == "seasons" then
 		seasonsData = data; renderSeasons(data)
 	elseif kind == "unlocked" then
 		seasonsData = data.seasons; if seasonP.Visible then renderSeasons(seasonsData) end
+	elseif kind == "leveled" then
+		toast("LEVEL UP  —  Power Level " .. tostring(data.level), GOLD)
 	end
 end)
 if charEvent then

@@ -93,8 +93,9 @@ local function ensureBindable(name)
 	if not b then b = Instance.new("BindableEvent"); b.Name = name; b.Parent = ServerStorage end
 	return b
 end
-local startSeasonEvent = ensureBindable("StartCampaignSeason")   -- menu -> controller: (player, seasonId)
+local startSeasonEvent = ensureBindable("StartCampaignSeason")   -- menu -> controller: (player, seasonId, faction)
 local seasonCompletedEvent = ensureBindable("SeasonCompleted")   -- controller -> menu: (seasonId)
+local grantXpEvent = ensureBindable("GrantXP")                   -- controller -> menu: (amount) per kill
 
 -------------------------------------------------------------------
 -- STATE
@@ -105,6 +106,35 @@ local index = 0                  -- current stage index (1-based into Campaign.S
 local activeEnemies = 0
 local stageCleared = false       -- enemies down, marker live
 local running = false
+local runFaction = "hero"        -- whose perspective this run is fought from
+
+-- FACTION FRAMING: villains fight the opposite side, with a hero as their boss.
+-- Each field falls back to the hero-side value if a season hasn't authored it.
+local function isVillain() return runFaction == "villain" end
+local function factionEnemyName()
+	if isVillain() then return Campaign.VillainEnemyName or "Hero Squad" end
+	return Campaign.EnemyName or "Enemy"
+end
+local function factionBossName(stage)
+	if not (stage and stage.boss) then return nil end
+	if isVillain() then return Campaign.VillainBoss or Campaign.BossName or (activeSeason and activeSeason.boss) end
+	return Campaign.BossName or (activeSeason and activeSeason.boss) or "Manderin"
+end
+local function factionMiniBoss(stage)
+	if not stage then return nil end
+	if isVillain() then return stage.villainMiniBoss or stage.miniBoss end
+	return stage.miniBoss
+end
+local function factionObjective(stage)
+	if not stage then return "" end
+	if isVillain() then
+		if stage.villainObjective then return stage.villainObjective end
+		if Campaign.VillainObjectives and Campaign.VillainObjectives[stage.id] then
+			return Campaign.VillainObjectives[stage.id]
+		end
+	end
+	return stage.objective or ""
+end
 
 local function broadcast(state)
 	local stage = Campaign.Stages[index]
@@ -113,11 +143,12 @@ local function broadcast(state)
 		stage = index,
 		total = #Campaign.Stages,
 		district = stage and stage.district or "",
-		objective = stage and stage.objective or "",
+		objective = factionObjective(stage),
 		enemiesLeft = activeEnemies,
 		boss = stage and stage.boss or false,
-		bossName = (stage and stage.boss) and (Campaign.BossName or (activeSeason and activeSeason.boss)) or nil,
-		miniBoss = stage and stage.miniBoss or nil,
+		bossName = factionBossName(stage),
+		miniBoss = factionMiniBoss(stage),
+		faction = runFaction,
 	})
 end
 
@@ -172,6 +203,7 @@ local completeStage   -- forward decl
 
 local function onEnemyDown()
 	activeEnemies = math.max(0, activeEnemies - 1)
+	grantXpEvent:Fire(6)   -- campaign XP for the kill (menu awards + levels)
 	broadcast("fighting")
 	if activeEnemies == 0 and not stageCleared then
 		stageCleared = true
@@ -193,11 +225,12 @@ local function startStage(i)
 	local center = beacon and beacon.Position or Vector3.new(0, 0, 0)
 	center = Vector3.new(center.X, groundY(center), center.Z)
 
+	local enemyName = factionEnemyName()
 	if stage.boss then
 		activeEnemies = 1
 		setMarker(stage, false)
-		local bossName = Campaign.BossName or (activeSeason and activeSeason.boss) or "Manderin"
-		-- build the boss's THEMED model (looks like his art) if a spec exists;
+		local bossName = factionBossName(stage) or "Manderin"
+		-- build the boss's THEMED model (looks like their art) if a spec exists;
 		-- otherwise the factory falls back to the default boss rig
 		local rig
 		if CharacterModelFactory and CharacterModelFactory.has(bossName) then
@@ -206,13 +239,14 @@ local function startStage(i)
 		local bossModel = EnemyFactory.spawnBoss(center + Vector3.new(0, 3, 0), {
 			name = bossName, parent = enemyFolder, rig = rig,
 			abilityEngine = AbilityEngine, onDeath = onEnemyDown,
-			moves = deriveBossMoves(bossName),   -- his own kit; nil = factory default
+			moves = deriveBossMoves(bossName),   -- their own kit; nil = factory default
 		})
 		broadcast("boss")
 		watchBossHealth(bossModel, bossName)   -- stream HP to the boss bar
 	else
 		local n = stage.enemies or 3
-		activeEnemies = n + (stage.miniBoss and 1 or 0)
+		local miniName = factionMiniBoss(stage)
+		activeEnemies = n + (miniName and 1 or 0)
 		setMarker(stage, false)
 		for k = 1, n do
 			local ang = (k / n) * math.pi * 2
@@ -222,13 +256,13 @@ local function startStage(i)
 			-- every 3rd enemy is a ranged attacker so stages aren't all melee
 			if k % 3 == 0 then
 				EnemyFactory.spawnRanged(sp, {
-					name = Campaign.EnemyName .. " (Ranged)", parent = enemyFolder,
+					name = enemyName .. " (Ranged)", parent = enemyFolder,
 					health = 70 + i * 8, projectileDamage = 6 + i, abilityEngine = AbilityEngine,
 					onDeath = onEnemyDown,
 				})
 			else
 				EnemyFactory.spawnGuard(sp, {
-					name = Campaign.EnemyName, parent = enemyFolder,
+					name = enemyName, parent = enemyFolder,
 					health = 90 + i * 12, meleeDamage = 6 + i, walkSpeed = 14,
 					onDeath = onEnemyDown,
 				})
@@ -236,8 +270,8 @@ local function startStage(i)
 		end
 		-- optional MINI-BOSS: a tougher named enemy counted toward the clear
 		-- (not the final boss, so it doesn't end the season)
-		if stage.miniBoss then
-			local mName = stage.miniBoss
+		if miniName then
+			local mName = miniName
 			local rig
 			if CharacterModelFactory and CharacterModelFactory.has(mName) then
 				rig = CharacterModelFactory.build(mName, center + Vector3.new(0, 4, 0), { parent = enemyFolder })
@@ -302,7 +336,7 @@ local function loadSeasonRoute(seasonId)
 	return mod, season
 end
 
-local function beginSeason(seasonId)
+local function beginSeason(seasonId, faction)
 	local route, season = loadSeasonRoute(seasonId)
 	if not route then
 		warn("CampaignController: season " .. tostring(seasonId) .. " has no built route module.")
@@ -311,6 +345,7 @@ local function beginSeason(seasonId)
 	-- retarget the whole controller at this season (all closures read these upvalues)
 	Campaign = route
 	activeSeason = season
+	runFaction = (faction == "villain") and "villain" or "hero"
 
 	-- stop any current run and clear its enemies
 	running = false
@@ -344,9 +379,9 @@ local function beginSeason(seasonId)
 	print("CampaignController: " .. label .. " started (" .. #Campaign.Stages .. " stages).")
 end
 
--- the menu asks us to start a season
-startSeasonEvent.Event:Connect(function(_player, seasonId)
-	beginSeason(seasonId)
+-- the menu asks us to start a season (with the chooser's faction)
+startSeasonEvent.Event:Connect(function(_player, seasonId, faction)
+	beginSeason(seasonId, faction)
 end)
 
 -- send current state to late joiners

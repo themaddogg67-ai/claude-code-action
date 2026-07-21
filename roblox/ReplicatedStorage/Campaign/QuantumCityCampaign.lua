@@ -20,6 +20,21 @@ QuantumCityCampaign.Season        = 10
 
 QuantumCityCampaign.EnemyName = "Quantum Sentinel"
 QuantumCityCampaign.BossName  = "The Anonymous"
+-- VILLAIN side: defend the loops for the Anonymous, repelling the heroes who
+-- breach them — and Chasm, the energy hero, is your final foe.
+QuantumCityCampaign.VillainEnemyName = "Hero Intruder"
+QuantumCityCampaign.VillainBoss      = "Chasm"
+QuantumCityCampaign.VillainObjectives = {
+	[1] = "Repel the boarders at the docking ring.",
+	[2] = "Purge intruders from the data market.",
+	[3] = "Defend the holographic grid.",
+	[4] = "Hold the server spire.",
+	[5] = "Seal the firewall checkpoint.",
+	[6] = "Guard the loop gardens.",
+	[7] = "Trap them in the undernet.",
+	[8] = "Fortify the nexus core.",
+	[9] = "Anonymous Sanctum — destroy Chasm.",
+}
 
 QuantumCityCampaign.Stages = {
 	{ id = 1, district = "Docking Ring",        markerName = "Stage1_DockingRing",       enemies = 3, objective = "Dock and breach Quantum City's outer ring." },

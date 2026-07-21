@@ -21,6 +21,18 @@ RuinedCityCampaign.Season        = 7
 
 RuinedCityCampaign.EnemyName = "Rioter"
 RuinedCityCampaign.BossName  = "Omega"
+-- VILLAIN side: spread Omega's chaos, fighting the peacekeepers trying to save
+-- the city — and Patriot, the super-soldier defender, is your final foe.
+RuinedCityCampaign.VillainEnemyName = "Peacekeeper"
+RuinedCityCampaign.VillainBoss      = "Patriot"
+RuinedCityCampaign.VillainObjectives = {
+	[1] = "Cut off the evacuation.",
+	[2] = "Tear through the streets.",
+	[3] = "Level the collapsed plaza.",
+	[4] = "Spread the fires further.",
+	[5] = "Break the last barricade.",
+	[6] = "Ground Zero — destroy Patriot.",
+}
 
 RuinedCityCampaign.Stages = {
 	{ id = 1, district = "Evacuation Zone",  markerName = "Stage1_EvacuationZone",  enemies = 4, objective = "Cover the evacuation as the city falls." },

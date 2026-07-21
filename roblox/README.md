@@ -383,3 +383,29 @@ Picking sets `CharacterName` (kit), `Faction`, and the weakness attribute, then
 skins the avatar to the chosen character. Both faction rosters have kits and
 themed models. Edit `HERO_STARTERS` / `VILLAIN_STARTERS` / `VILLAIN_WEAK` in
 `CharacterSelect` to change the lineups or the villain penalty.
+
+## Villain-perspective campaign + XP / leveling
+
+**Every fight flips by faction.** The campaign now runs from the chosen side's
+perspective. Heroes fight the villain forces (e.g. Metro City: Manderin
+Security, boss Manderin). Villains fight the *opposite* — the heroes/law trying
+to stop them — with a hero as their final boss and inverted objectives:
+
+| Season | Hero enemy → boss | Villain enemy → boss |
+| --- | --- | --- |
+| 1 Swamplands | Swamp Raider → Minus | Bayou Ranger → **Titan** |
+| 2 Gildonia | Void Soldier → Void Overlord | World Warrior → **Red Rocket** |
+| 3 Ruined City | Rioter → Omega | Peacekeeper → **Patriot** |
+| 4 Metro City | Manderin Security → Manderin | Resistance Fighter → **Looney** |
+| 5 Quantum City | Quantum Sentinel → Anonymous | Hero Intruder → **Chasm** |
+
+Season 1 also flips its mini-boss: heroes beat down **El Primo Libre**; villains
+take down the hero **Champion**. Each stage has a `villainObjective` (or a
+route-level `VillainObjectives` map); the controller picks the faction's
+enemies, boss, mini-boss, and objective text at runtime.
+
+**XP / leveling.** Kills grant campaign XP (+6) and clearing a season grants more
+(+120); `PowerLevel = 1 + XP/120`, saved per player. A starting villain's
+`ArmorDamageMult` climbs from 0.6 toward 1.0 as they level (+0.08/level — full
+strength by ~level 6), and heroes get a mild scaling bonus; the multiplier
+updates live on level-up. A "LEVEL UP" toast shows in the menu.

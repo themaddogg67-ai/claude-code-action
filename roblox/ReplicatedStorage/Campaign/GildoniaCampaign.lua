@@ -20,6 +20,20 @@ GildoniaCampaign.Season        = 5
 
 GildoniaCampaign.EnemyName = "Void Soldier"
 GildoniaCampaign.BossName  = "Void Overlord"
+-- VILLAIN side: you invade Gildonia WITH the Void, fighting the Warriors who
+-- defend it — and Red Rocket, leader of the Warriors, is your final foe.
+GildoniaCampaign.VillainEnemyName = "World Warrior"
+GildoniaCampaign.VillainBoss      = "Red Rocket"
+GildoniaCampaign.VillainObjectives = {
+	[1] = "Secure the crash site for the invasion.",
+	[2] = "Push through the jungle defenders.",
+	[3] = "Raze the native village.",
+	[4] = "Seize the ancient ruins.",
+	[5] = "Take the river crossing.",
+	[6] = "Breach and hold the temple.",
+	[7] = "Corrupt the sacred grove.",
+	[8] = "Corrupted clearing — destroy Red Rocket.",
+}
 
 GildoniaCampaign.Stages = {
 	{ id = 1, district = "Crash Site",        markerName = "Stage1_CrashSite",        enemies = 3, objective = "Regroup at the downed Warrior ship." },

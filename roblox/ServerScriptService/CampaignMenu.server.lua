@@ -48,6 +48,7 @@ local function ensureBindable(name)
 end
 local startSeasonEvent = ensureBindable("StartCampaignSeason")
 local seasonCompletedEvent = ensureBindable("SeasonCompleted")
+local grantXpEvent = ensureBindable("GrantXP")   -- controller -> menu: (amount) per kill
 
 -- DataStore (guarded — Studio without API access will error on GetAsync)
 local store
@@ -69,20 +70,46 @@ local function ladderPos(seasonId)
 end
 
 local progress = {}   -- player -> number of ladder entries unlocked (>=1)
+local xpOf = {}       -- player -> accumulated campaign XP
+
+local XP_PER_LEVEL   = 120
+local XP_PER_KILL    = 6
+local XP_PER_SEASON  = 120
+local function levelFromXp(xp) return 1 + math.floor((xp or 0) / XP_PER_LEVEL) end
 
 local function loadProgress(player)
-	local p = 1
+	local p, xp = 1, 0
 	if store then
 		local ok, data = pcall(function() return store:GetAsync("p_" .. player.UserId) end)
-		if ok and type(data) == "number" then p = math.max(1, data) end
+		if ok then
+			if type(data) == "number" then p = math.max(1, data)          -- legacy record
+			elseif type(data) == "table" then p = math.max(1, data.progress or 1); xp = math.max(0, data.xp or 0) end
+		end
 	end
 	progress[player] = math.clamp(p, 1, #LADDER)
+	xpOf[player] = xp
 	player:SetAttribute("CampaignProgress", progress[player])
+	player:SetAttribute("CampaignXP", xp)
+	player:SetAttribute("PowerLevel", levelFromXp(xp))
 end
 
 local function saveProgress(player)
 	if store and progress[player] then
-		pcall(function() store:SetAsync("p_" .. player.UserId, progress[player]) end)
+		pcall(function() store:SetAsync("p_" .. player.UserId, { progress = progress[player], xp = xpOf[player] or 0 }) end)
+	end
+end
+
+-- award XP; persist only on level-up (DataStore rate limits — kills are frequent)
+local function addXp(player, amount)
+	if not xpOf[player] then return end
+	local before = levelFromXp(xpOf[player])
+	xpOf[player] = xpOf[player] + amount
+	player:SetAttribute("CampaignXP", xpOf[player])
+	local after = levelFromXp(xpOf[player])
+	if after ~= before then
+		player:SetAttribute("PowerLevel", after)   -- CharacterSelect re-reads this live
+		saveProgress(player)
+		menuEvent:FireClient(player, "leveled", { level = after, xp = xpOf[player] })
 	end
 end
 
@@ -113,27 +140,36 @@ menuEvent.OnServerEvent:Connect(function(player, action, payload)
 		menuEvent:FireClient(player, "seasons", seasonsPayload(player))
 	elseif action == "start" and type(payload) == "table" then
 		local seasonId = payload.seasonId
+		local faction = (payload.faction == "villain") and "villain" or "hero"
 		local pos = ladderPos(seasonId)
 		if pos and pos <= (progress[player] or 1) then
-			startSeasonEvent:Fire(player, seasonId)   -- the controller loads + runs it
+			startSeasonEvent:Fire(player, seasonId, faction)   -- the controller loads + runs it
 		else
 			menuEvent:FireClient(player, "denied", seasonId)
 		end
 	end
 end)
 
--- controller reports a season cleared -> unlock the next ladder entry for everyone present
+-- controller reports a season cleared -> unlock the next ladder entry + award XP
 seasonCompletedEvent.Event:Connect(function(seasonId)
 	local pos = ladderPos(seasonId)
 	if not pos then return end
 	for _, player in ipairs(Players:GetPlayers()) do
+		addXp(player, XP_PER_SEASON)
 		local cur = progress[player] or 1
 		if pos >= cur and pos + 1 <= #LADDER then
 			progress[player] = pos + 1
 			player:SetAttribute("CampaignProgress", progress[player])
-			saveProgress(player)
-			menuEvent:FireClient(player, "unlocked", { seasonId = seasonId, seasons = seasonsPayload(player) })
 		end
+		saveProgress(player)
+		menuEvent:FireClient(player, "unlocked", { seasonId = seasonId, seasons = seasonsPayload(player) })
+	end
+end)
+
+-- controller reports an enemy defeated -> small XP to everyone in the fight
+grantXpEvent.Event:Connect(function(amount)
+	for _, player in ipairs(Players:GetPlayers()) do
+		addXp(player, amount or XP_PER_KILL)
 	end
 end)
 

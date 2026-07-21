@@ -51,6 +51,15 @@ end
 local function rosterFor(faction) return (faction == "villain") and VILLAIN_STARTERS or HERO_STARTERS end
 local function isAllowed(name, faction) return inList(rosterFor(faction), name) end
 
+-- outgoing-damage multiplier from PowerLevel (set by CampaignMenu's XP system).
+-- Villains climb from their weak start toward full strength; heroes get a mild
+-- scaling bonus. Applied via ArmorDamageMult, which the ability system reads.
+local function powerMult(faction, level)
+	level = level or 1
+	if faction == "villain" then return math.clamp(VILLAIN_WEAK + (level - 1) * 0.08, VILLAIN_WEAK, 1.0) end
+	return math.clamp(1 + (level - 1) * 0.03, 1, 1.3)
+end
+
 -- set attributes + skin the live character to the chosen faction/character
 local function skin(player, character)
 	local pick = chosen[player]
@@ -58,9 +67,10 @@ local function skin(player, character)
 	local faction = (pick and pick.faction) or "hero"
 	player:SetAttribute("CharacterName", name)             -- ability kit
 	player:SetAttribute("Faction", faction)
-	-- villain "at their weakest": a persistent outgoing-damage multiplier the
-	-- ability system multiplies in (separate from buff-driven DamageMult).
-	player:SetAttribute("ArmorDamageMult", (faction == "villain") and VILLAIN_WEAK or 1)
+	-- villain "at their weakest", scaling up with PowerLevel — a persistent
+	-- outgoing-damage multiplier the ability system multiplies in (separate from
+	-- buff-driven DamageMult).
+	player:SetAttribute("ArmorDamageMult", powerMult(faction, player:GetAttribute("PowerLevel")))
 	if Factory then
 		character:WaitForChild("HumanoidRootPart", 5)
 		character:WaitForChild("Head", 5)
@@ -74,6 +84,11 @@ end
 local function setup(player)
 	player.CharacterAdded:Connect(function(char) onCharacter(player, char) end)
 	if player.Character then onCharacter(player, player.Character) end
+	-- re-apply the damage multiplier live when the player levels up
+	player:GetAttributeChangedSignal("PowerLevel"):Connect(function()
+		local faction = player:GetAttribute("Faction") or "hero"
+		player:SetAttribute("ArmorDamageMult", powerMult(faction, player:GetAttribute("PowerLevel")))
+	end)
 	task.defer(function() event:FireClient(player, "rosters", { heroes = HERO_STARTERS, villains = VILLAIN_STARTERS }) end)
 end
 
