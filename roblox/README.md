@@ -221,3 +221,39 @@ Both built maps now: **Season 8 Metro City** (city biome) and **Season 10
 Quantum City** (digital biome). Adding the next one — Gildonia (jungle),
 Valhalla (stone), any of the 100 atlas planets — is a builder + route + a
 registry flip.
+
+---
+
+# Character models & themed bosses
+
+`CharacterModelFactory` (`ServerStorage`, ModuleScript) builds themed R6 rigs out
+of parts from an appearance SPEC — the looks read off the roster art. Specs live
+in `CharacterModels` (`ReplicatedStorage > Characters > CharacterModels`,
+ModuleScript, pure data). **39 characters** modeled so far.
+
+| File | Studio location | Type |
+| --- | --- | --- |
+| `ServerStorage/CharacterModelFactory.lua` | `ServerStorage > CharacterModelFactory` | ModuleScript (new) |
+| `ReplicatedStorage/Characters/CharacterModels.lua` | `ReplicatedStorage > Characters > CharacterModels` | ModuleScript (new) |
+| `ServerScriptService/BuildModelGallery.server.lua` | `ServerScriptService > BuildModelGallery` | Script (new) |
+
+**Appearance features** (all data-driven, no assets): spiky anime hair, glowing
+eyes (dual / single / visor), shadowed hoods with glowing eyes, Channel's TV
+head, chest emblems (Manderin `M`, Looney `E`, Red Rocket `RR`, Omega `Ω`, Mr
+Universe `∞`, Dead Dash `⚡`), Red Eye's chest eye, capes, back-tentacles
+(Manderin / The Engineer / Void Overlord), and elemental auras (fire, electric,
+void, cosmic, holy, gold, ice, green, energy).
+
+**Themed bosses.** Every rig is a valid Humanoid, so the campaign boss now wears
+its real look: the controller builds the boss's model via the factory and hands
+it to `EnemyFactory.spawnBoss` as `opts.rig` (falling back to the default rig if
+a boss has no spec). Manderin fights as Manderin, the Void Overlord as the Void
+Overlord — with the CharacterKits moveset already wired in. Bosses with models:
+Manderin, The Anonymous, Void Overlord, Nemesis, Minus, Null, Omega, Armageddon,
+Dragon, Rynox, Sugoro, Channel.
+
+**View them all.** Run in the Studio Command Bar:
+```lua
+require(game.ServerStorage.CharacterModelFactory).gallery(workspace, CFrame.new(0, 5, 300))
+```
+Every modeled character appears as a labeled display statue.

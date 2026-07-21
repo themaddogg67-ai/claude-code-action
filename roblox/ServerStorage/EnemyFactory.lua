@@ -234,27 +234,43 @@ local BOSS_MOVES = {
 
 function EnemyFactory.spawnBoss(pos, opts)
 	opts = opts or {}
-	local model, hrp, hum = buildRig(opts.name or "Manderin", pos, 1.6,
-		BOSS_COLOR, BOSS_TRIM, opts.health or 2200)
-	hum.WalkSpeed = opts.walkSpeed or 10
+	local model, hrp, hum
+
+	if opts.rig then
+		-- a themed model was built for us (CharacterModelFactory) — drive it as-is
+		model = opts.rig
+		hrp = model.PrimaryPart or model:FindFirstChild("HumanoidRootPart")
+		hum = model:FindFirstChildOfClass("Humanoid")
+		if not hrp or not hum then
+			warn("EnemyFactory.spawnBoss: injected rig missing Humanoid/HumanoidRootPart")
+			return
+		end
+		if opts.health then hum.MaxHealth = opts.health; hum.Health = opts.health end
+		hum.WalkSpeed = opts.walkSpeed or hum.WalkSpeed
+		if hrp.Position ~= pos then model:PivotTo(CFrame.new(pos)) end
+		model.Parent = opts.parent or workspace
+	else
+		-- default boss rig + Manderin's signature tentacles
+		model, hrp, hum = buildRig(opts.name or "Manderin", pos, 1.6, BOSS_COLOR, BOSS_TRIM, opts.health or 2200)
+		hum.WalkSpeed = opts.walkSpeed or 10
+		model.Parent = opts.parent or workspace
+		local torso = model:FindFirstChild("Torso")
+		for i = 1, 4 do
+			local ang = math.rad((i - 2.5) * 22)
+			local t = limb("BackTentacle", Vector3.new(0.6, 5, 0.6), BOSS_COLOR, model)
+			t.CanCollide = false
+			t.CFrame = torso.CFrame * CFrame.new((i - 2.5) * 0.7, 1.5, 1.3) * CFrame.Angles(math.rad(30), 0, ang)
+			weld(t, torso)
+			local tip = limb("TentacleTip", Vector3.new(0.7, 0.7, 0.7), BOSS_TRIM, model)
+			tip.Material = Enum.Material.Neon
+			tip.CFrame = t.CFrame * CFrame.new(0, 2.6, 0)
+			weld(tip, t)
+		end
+	end
+
 	model:SetAttribute("Boss", true)
-	model.Parent = opts.parent or workspace
 	nameplate(model, hum, "★ " .. (opts.name or "Manderin"), BOSS_TRIM)
 	attachDeath(model, hum, opts.onDeath)
-
-	-- four cosmetic tentacles off the back (Manderin's signature)
-	local torso = model:FindFirstChild("Torso")
-	for i = 1, 4 do
-		local ang = math.rad((i - 2.5) * 22)
-		local t = limb("BackTentacle", Vector3.new(0.6, 5, 0.6), BOSS_COLOR, model)
-		t.CanCollide = false
-		t.CFrame = torso.CFrame * CFrame.new((i - 2.5) * 0.7, 1.5, 1.3) * CFrame.Angles(math.rad(30), 0, ang)
-		weld(t, torso)
-		local tip = limb("TentacleTip", Vector3.new(0.7, 0.7, 0.7), BOSS_TRIM, model)
-		tip.Material = Enum.Material.Neon
-		tip.CFrame = t.CFrame * CFrame.new(0, 2.6, 0)
-		weld(tip, t)
-	end
 
 	local engine = opts.abilityEngine
 	local moves = opts.moves or BOSS_MOVES     -- villain's real kit, or the default set

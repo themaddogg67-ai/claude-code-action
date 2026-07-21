@@ -38,6 +38,7 @@ local AbilityEngine = safeRequire(ServerStorage:FindFirstChild("AbilityEngine")
 		and game.ServerScriptService.Systems:FindFirstChild("AbilityEngine")))
 local CharacterKits = safeRequire(ReplicatedStorage:FindFirstChild("Characters")
 	and ReplicatedStorage.Characters:FindFirstChild("CharacterKits"))
+local CharacterModelFactory = safeRequire(ServerStorage:FindFirstChild("CharacterModelFactory"))
 
 -- Pick the ACTIVE season from the registry (multi-map ready); fall back to
 -- Metro City directly so a missing registry still runs the built map.
@@ -169,8 +170,14 @@ local function startStage(i)
 		activeEnemies = 1
 		setMarker(stage, false)
 		local bossName = Campaign.BossName or (activeSeason and activeSeason.boss) or "Manderin"
+		-- build the boss's THEMED model (looks like his art) if a spec exists;
+		-- otherwise the factory falls back to the default boss rig
+		local rig
+		if CharacterModelFactory and CharacterModelFactory.has(bossName) then
+			rig = CharacterModelFactory.build(bossName, center + Vector3.new(0, 3, 0), { parent = enemyFolder })
+		end
 		EnemyFactory.spawnBoss(center + Vector3.new(0, 3, 0), {
-			name = bossName, parent = enemyFolder,
+			name = bossName, parent = enemyFolder, rig = rig,
 			abilityEngine = AbilityEngine, onDeath = onEnemyDown,
 			moves = deriveBossMoves(bossName),   -- his own kit; nil = factory default
 		})
