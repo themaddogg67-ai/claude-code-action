@@ -341,9 +341,9 @@ play**. Only Season 1 is playable for a new player; completing a season unlocks
 the next. Progress persists per player (DataStore, with an in-memory fallback if
 DataStores are off).
 
-| File | Studio location | Type |
-| --- | --- | --- |
-| `ServerScriptService/CampaignMenu.server.lua` | `ServerScriptService > CampaignMenu` | Script (new) |
+| File                                           | Studio location                                       | Type              |
+| ---------------------------------------------- | ----------------------------------------------------- | ----------------- |
+| `ServerScriptService/CampaignMenu.server.lua`  | `ServerScriptService > CampaignMenu`                  | Script (new)      |
 | `StarterPlayerScripts/CampaignMenu.client.lua` | `StarterPlayer > StarterPlayerScripts > CampaignMenu` | LocalScript (new) |
 
 The playable ladder is the **built seasons in order**, shown as Season 1–5 (Rise
@@ -358,3 +358,13 @@ that season's map + route and runs it. On victory the controller fires
 BindableEvents auto-create.) The old standalone `CharacterSelectGui` is now a
 no-op stub — the menu handles character picking; you can delete it. The
 `CharacterSelect` server morph logic is unchanged.
+
+## Mini-bosses
+
+Any stage can name a `miniBoss` — a tougher, themed named enemy that spawns
+alongside the stage's guards and counts toward the clear (it does NOT end the
+season; only the final boss stage does). Mini-bosses use their CharacterKits
+moveset + themed model and get phase-two enrage but summon no adds. The HUD
+flashes a gold "MINI-BOSS — <name>" banner. **Season 1's mini-boss is El Primo
+Libre** (gold-masked wrestler drug-lord) at the Sunken Village. Add one to any
+stage: `miniBoss = "<CharacterKits name>", miniBossHealth = 1100`.

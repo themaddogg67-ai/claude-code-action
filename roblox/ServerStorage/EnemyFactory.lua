@@ -376,11 +376,13 @@ function EnemyFactory.spawnBoss(pos, opts)
 		if engine then
 			pcall(function() engine.run(nil, model, { type = "aoe", radius = 22, damage = 18, knockback = 70, up = 25, style = "shadow" }, hrp.Position) end)
 		end
-		-- two adds
-		for i = -1, 1, 2 do
-			EnemyFactory.spawnGuard(hrp.Position + Vector3.new(i * 8, 3, 0), {
-				name = (opts.name or "Boss") .. " Guard", parent = opts.parent, health = 140,
-			})
+		-- two adds (skipped for mini-bosses so a stage's kill count stays exact)
+		if not opts.noAdds then
+			for i = -1, 1, 2 do
+				EnemyFactory.spawnGuard(hrp.Position + Vector3.new(i * 8, 3, 0), {
+					name = (opts.name or "Boss") .. " Guard", parent = opts.parent, health = 140,
+				})
+			end
 		end
 	end
 	hum.HealthChanged:Connect(function(h)

@@ -25,7 +25,7 @@ SwamplandsCampaign.BossName  = "Minus"
 SwamplandsCampaign.Stages = {
 	{ id = 1, district = "Muddy Banks",    markerName = "Stage1_MuddyBanks",    enemies = 3, objective = "Wade in through the muddy banks." },
 	{ id = 2, district = "Mangrove Maze",  markerName = "Stage2_MangroveMaze",  enemies = 4, objective = "Find your way through the mangrove maze." },
-	{ id = 3, district = "Sunken Village",  markerName = "Stage3_SunkenVillage", enemies = 5, objective = "Search the sunken stilt village." },
+	{ id = 3, district = "Sunken Village",  markerName = "Stage3_SunkenVillage", enemies = 4, miniBoss = "El Primo Libre", miniBossHealth = 1100, objective = "Sunken village — beat down El Primo Libre." },
 	{ id = 4, district = "Poison Marsh",   markerName = "Stage4_PoisonMarsh",   enemies = 5, objective = "Cross the poison marsh." },
 	{ id = 5, district = "The War Camp",   markerName = "Stage5_TheWarCamp",    enemies = 6, objective = "Raid Minus's war camp." },
 	{ id = 6, district = "Gator's Den",    markerName = "Stage6_GatorsDen",     enemies = 0, objective = "Enter the Gator's Den — defeat Minus.", boss = true },

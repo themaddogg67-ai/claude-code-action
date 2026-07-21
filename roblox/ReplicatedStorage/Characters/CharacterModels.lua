@@ -256,6 +256,11 @@ M["Lockdown"]      = { body = { 22, 20, 24 }, limbs = { 34, 30, 34 }, eyeStyle =
 M["Fallout"]       = { body = { 40, 38, 22 }, limbs = { 60, 56, 30 }, aura = "green", eyes = { 235, 60, 50 } }
 M["Bloody Soldier"] = { body = { 40, 18, 20 }, limbs = { 120, 24, 28 }, skin = { 205, 168, 146 }, hair = { 235, 235, 240 }, aura = "fire", auraColor = { 220, 30, 40 }, eyes = { 255, 60, 50 } }
 M["Nightmare"]     = { scale = 1.5, body = { 14, 14, 18 }, limbs = { 12, 12, 16 }, hood = { 10, 10, 14 }, hoodGlow = { 245, 210, 60 }, cape = { 10, 10, 14 }, aura = "void", health = 2200 }
+-- El Primo Libre — drug-lord pro wrestler: gold wrestling mask, black suit,
+-- golden knuckles, a thousand pounds of muscle. Season 1 mini-boss.
+M["El Primo Libre"] = { scale = 1.4, body = { 20, 20, 24 }, limbs = { 26, 26, 30 }, skin = { 235, 190, 60 },
+	material = "SmoothPlastic", aura = "gold", auraColor = { 255, 205, 80 }, eyes = { 30, 30, 34 }, health = 1100 }
+
 M["Star Forge"]    = M["Starforge"]   -- alias for the alternate spelling on the sheet
 
 return M

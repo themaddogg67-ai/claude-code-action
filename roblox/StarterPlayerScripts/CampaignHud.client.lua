@@ -148,9 +148,13 @@ local function render(data)
 		status.TextColor3 = GREEN
 		stroke.Color = GREEN; accentBar.BackgroundColor3 = GREEN
 	elseif data.state == "boss" or data.boss then
-		status.Text = "Manderin — HP bar above the boss"
+		status.Text = (data.bossName or "Boss") .. " — see the boss bar below"
 		status.TextColor3 = RED
 		stroke.Color = RED; accentBar.BackgroundColor3 = RED
+	elseif data.miniBoss then
+		status.Text = "Mini-boss: " .. data.miniBoss .. "  ·  enemies left: " .. tostring(data.enemiesLeft or 0)
+		status.TextColor3 = GOLD
+		stroke.Color = GOLD; accentBar.BackgroundColor3 = GOLD
 	else
 		status.Text = "Enemies remaining: " .. tostring(data.enemiesLeft or 0)
 		status.TextColor3 = Color3.fromRGB(255, 160, 120)
@@ -160,7 +164,9 @@ local function render(data)
 	if data.stage ~= lastStage then
 		lastStage = data.stage
 		if data.boss then
-			flashBanner("MANDERIN", RED)
+			flashBanner(string.upper(data.bossName or data.district or "BOSS"), RED)
+		elseif data.miniBoss then
+			flashBanner("MINI-BOSS — " .. data.miniBoss, GOLD)
 		else
 			flashBanner("STAGE " .. data.stage .. " — " .. (data.district or ""), ACCENT)
 		end

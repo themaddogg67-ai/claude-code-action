@@ -116,6 +116,8 @@ local function broadcast(state)
 		objective = stage and stage.objective or "",
 		enemiesLeft = activeEnemies,
 		boss = stage and stage.boss or false,
+		bossName = (stage and stage.boss) and (Campaign.BossName or (activeSeason and activeSeason.boss)) or nil,
+		miniBoss = stage and stage.miniBoss or nil,
 	})
 end
 
@@ -210,7 +212,7 @@ local function startStage(i)
 		watchBossHealth(bossModel, bossName)   -- stream HP to the boss bar
 	else
 		local n = stage.enemies or 3
-		activeEnemies = n
+		activeEnemies = n + (stage.miniBoss and 1 or 0)
 		setMarker(stage, false)
 		for k = 1, n do
 			local ang = (k / n) * math.pi * 2
@@ -231,6 +233,22 @@ local function startStage(i)
 					onDeath = onEnemyDown,
 				})
 			end
+		end
+		-- optional MINI-BOSS: a tougher named enemy counted toward the clear
+		-- (not the final boss, so it doesn't end the season)
+		if stage.miniBoss then
+			local mName = stage.miniBoss
+			local rig
+			if CharacterModelFactory and CharacterModelFactory.has(mName) then
+				rig = CharacterModelFactory.build(mName, center + Vector3.new(0, 4, 0), { parent = enemyFolder })
+			end
+			EnemyFactory.spawnBoss(center + Vector3.new(0, 4, 0), {
+				name = mName, parent = enemyFolder, rig = rig,
+				abilityEngine = AbilityEngine, onDeath = onEnemyDown,
+				moves = deriveBossMoves(mName),
+				health = stage.miniBossHealth or 1000,
+				castInterval = 4, noAdds = true,   -- gentler than a full boss, no untracked adds
+			})
 		end
 		broadcast("fighting")
 	end
