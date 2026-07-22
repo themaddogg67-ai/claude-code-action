@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <title>SIEGE 2D — Tactical Breach</title>
     <link rel="stylesheet" href="style.css" />
   </head>
@@ -43,6 +46,26 @@
           </div>
         </div>
 
+        <!-- Help button (in-game) -->
+        <button id="btn-help" title="Controls &amp; help">?</button>
+
+        <!-- Touch controls (mobile only, shown while playing) -->
+        <div id="touch">
+          <div id="stick-move" class="stick">
+            <div id="stick-move-thumb" class="thumb"></div>
+            <span class="stick-label">MOVE</span>
+          </div>
+          <div id="touch-buttons">
+            <button id="tb-reload" class="tbtn">R</button>
+            <button id="tb-gadget" class="tbtn">E</button>
+            <button id="tb-action" class="tbtn act">F</button>
+          </div>
+          <div id="stick-aim" class="stick">
+            <div id="stick-aim-thumb" class="thumb"></div>
+            <span class="stick-label">AIM · FIRE</span>
+          </div>
+        </div>
+
         <!-- Main menu -->
         <div id="menu" class="screen">
           <div class="panel">
@@ -53,15 +76,19 @@
             </p>
             <button id="btn-start" class="btn btn-primary">DEPLOY</button>
             <div class="controls">
+              <div class="ctrl-head">💻 Keyboard &amp; mouse</div>
               <div>
                 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move ·
                 <kbd>MOUSE</kbd> aim · <kbd>CLICK</kbd> fire
               </div>
               <div><kbd>R</kbd> reload · <kbd>E</kbd> gadget</div>
               <div>
-                <kbd>F</kbd> melee-breach a wooden wall / hold on a site to
-                plant
+                <kbd>F</kbd> breach wooden wall / hold on a site to plant ·
+                <kbd>H</kbd> help
               </div>
+              <div class="ctrl-head">📱 Touch</div>
+              <div>Left stick move · right stick aim &amp; fire</div>
+              <div><b>R</b>/<b>E</b>/<b>F</b> buttons on the right</div>
             </div>
           </div>
         </div>
@@ -81,6 +108,57 @@
             <h2 id="end-title">MISSION COMPLETE</h2>
             <p id="end-reason" class="tag"></p>
             <button id="btn-replay" class="btn btn-primary">PLAY AGAIN</button>
+          </div>
+        </div>
+
+        <!-- Help / controls overlay -->
+        <div id="help" class="screen hidden">
+          <div class="panel wide">
+            <h2>HOW TO PLAY</h2>
+            <div class="help-grid">
+              <div class="help-col">
+                <h3>💻 Keyboard &amp; mouse</h3>
+                <ul>
+                  <li>
+                    <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> — move
+                  </li>
+                  <li><kbd>MOUSE</kbd> — aim</li>
+                  <li><kbd>CLICK</kbd> (hold) — fire</li>
+                  <li><kbd>R</kbd> — reload</li>
+                  <li><kbd>E</kbd> — operator gadget</li>
+                  <li>
+                    <kbd>F</kbd> — breach a wooden wall you face; hold on a bomb
+                    site to plant
+                  </li>
+                  <li><kbd>H</kbd> — open/close this help</li>
+                </ul>
+              </div>
+              <div class="help-col">
+                <h3>📱 Touch (phone / tablet)</h3>
+                <ul>
+                  <li><b>Left stick</b> — move</li>
+                  <li><b>Right stick</b> — aim &amp; auto-fire</li>
+                  <li><b>R</b> button — reload</li>
+                  <li><b>E</b> button — gadget</li>
+                  <li>
+                    <b>F</b> button — breach wall / hold on a site to plant
+                  </li>
+                  <li>Best played in <b>landscape</b>.</li>
+                </ul>
+              </div>
+            </div>
+            <div class="help-goal">
+              <h3>🎯 Goal</h3>
+              <p>
+                You're the attacker. Storm the building and either
+                <b>eliminate all defenders</b> (red) or reach bomb site
+                <span class="def">A</span>/<span class="def">B</span> — follow
+                the gold arrow &amp; dashed line — and hold <b>F</b> to plant
+                the defuser, then survive the countdown. A
+                <b>red arrow</b> points to any defender shooting at you.
+              </p>
+            </div>
+            <button id="btn-help-close" class="btn btn-primary">GOT IT</button>
           </div>
         </div>
       </div>

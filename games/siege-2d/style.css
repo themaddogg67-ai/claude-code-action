@@ -18,6 +18,10 @@ body {
   color: var(--text);
   font-family: "Segoe UI", Roboto, system-ui, sans-serif;
   min-height: 100vh;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 #app {
@@ -324,4 +328,209 @@ kbd {
   color: #ffd25a;
   font-family: monospace;
   font-weight: 700;
+}
+
+/* ---- Menu control hints ---- */
+.ctrl-head {
+  margin-top: 8px;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+.controls b {
+  color: #ffd25a;
+  font-family: monospace;
+}
+
+/* ---- In-game help button ---- */
+#btn-help {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid #3a4048;
+  background: rgba(10, 12, 16, 0.8);
+  color: var(--text);
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  display: none;
+  z-index: 6;
+}
+body.playing #btn-help {
+  display: block;
+}
+#btn-help:hover {
+  border-color: #565f6b;
+}
+
+/* ---- Help overlay ---- */
+.help-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  text-align: left;
+  margin: 10px 0 6px;
+}
+.help-col h3,
+.help-goal h3 {
+  font-size: 14px;
+  margin: 0 0 8px;
+  letter-spacing: 1px;
+  color: var(--text);
+}
+.help-col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.help-col li {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.help-col li b,
+.help-goal b {
+  color: #ffd25a;
+}
+.help-goal {
+  text-align: left;
+  border-top: 1px solid #2a2f38;
+  padding-top: 12px;
+  margin-top: 4px;
+}
+.help-goal p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+.help-goal .def {
+  color: #ffd25a;
+  font-family: monospace;
+  font-weight: 700;
+}
+
+/* ---- Touch controls ---- */
+#touch {
+  position: absolute;
+  inset: 0;
+  display: none;
+  z-index: 4;
+  pointer-events: none;
+  touch-action: none;
+}
+body.touch.playing #touch {
+  display: block;
+}
+.stick {
+  position: absolute;
+  bottom: 18px;
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  pointer-events: auto;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#stick-move {
+  left: 18px;
+}
+#stick-aim {
+  right: 18px;
+  border-color: rgba(255, 120, 90, 0.35);
+}
+.thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+#stick-aim .thumb {
+  background: rgba(255, 120, 90, 0.35);
+  border-color: rgba(255, 120, 90, 0.6);
+}
+.stick-label {
+  position: absolute;
+  bottom: -16px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  pointer-events: none;
+}
+#touch-buttons {
+  position: absolute;
+  right: 138px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 12px;
+  pointer-events: none;
+}
+.tbtn {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(20, 24, 30, 0.85);
+  color: var(--text);
+  font-weight: 800;
+  font-size: 18px;
+  font-family: monospace;
+  pointer-events: auto;
+  touch-action: none;
+}
+.tbtn.act {
+  border-color: #ffd25a;
+  color: #ffd25a;
+}
+.tbtn.pressed {
+  background: rgba(255, 210, 90, 0.3);
+  transform: scale(0.94);
+}
+
+/* ---- Mobile / small-screen layout ---- */
+@media (max-width: 720px), (pointer: coarse) {
+  #app {
+    padding: 0;
+    gap: 0;
+  }
+  #stage {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    border: none;
+    border-radius: 0;
+    aspect-ratio: auto;
+  }
+  #game {
+    object-fit: contain;
+  }
+  .objective-note {
+    display: none;
+  }
+  .panel {
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 22px 22px;
+  }
+  h1 {
+    font-size: 40px;
+  }
+  .help-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 }

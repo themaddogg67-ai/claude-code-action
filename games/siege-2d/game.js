@@ -174,6 +174,15 @@
   const blocksMove = (t) => t === REINF || t === SOFT || t === WINDOW;
   const blocksSight = (t) => t === REINF || t === SOFT;
 
+  // Shared input state, fed by keyboard/mouse AND by the on-screen touch controls.
+  const Input = {
+    moveX: 0, // analog move vector (-1..1), from the left joystick
+    moveY: 0,
+    aiming: false, // right joystick engaged → aim + auto-fire
+    aimAngle: 0,
+    fire: false,
+  };
+
   // ---------------------------------------------------------------------------
   // Audio (tiny WebAudio synth — no assets)
   // ---------------------------------------------------------------------------
@@ -487,6 +496,20 @@
       };
 
       this.enemies = map.enemySpawns.map((s) => new Enemy(s.x, s.y));
+      // Make two defenders active "roamers" that hunt you down, so there is
+      // always a fight coming toward you rather than only static campers.
+      const roamers = this.enemies
+        .slice()
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 2);
+      for (const e of roamers) {
+        e.roamer = true;
+        e.state = "alert";
+        e.target = {
+          x: this.player ? this.player.x : map.playerSpawn.x,
+          y: map.playerSpawn.y,
+        };
+      }
       this.bullets = [];
       this.particles = [];
       this.floaters = [];
@@ -909,19 +932,32 @@
 
     updatePlayer(dt) {
       const p = this.player;
-      p.angle = Math.atan2(this.mouse.y - p.y, this.mouse.x - p.x);
+      // Aim: touch right-stick takes priority, otherwise the mouse.
+      if (Input.aiming) p.angle = Input.aimAngle;
+      else p.angle = Math.atan2(this.mouse.y - p.y, this.mouse.x - p.x);
+
       const shielded = p.shieldUp;
       let sp = p.speed * (shielded ? 0.55 : 1);
 
+      // Movement: keyboard (digital) OR touch left-stick (analog).
       let dx = 0,
         dy = 0;
       if (this.keys["w"]) dy -= 1;
       if (this.keys["s"]) dy += 1;
       if (this.keys["a"]) dx -= 1;
       if (this.keys["d"]) dx += 1;
-      if (dx || dy) {
-        const l = Math.hypot(dx, dy);
-        this.moveCircle(p, p.x + (dx / l) * sp * dt, p.y + (dy / l) * sp * dt);
+      if (Input.moveX || Input.moveY) {
+        dx += Input.moveX;
+        dy += Input.moveY;
+      }
+      const mag = Math.hypot(dx, dy);
+      if (mag > 0.01) {
+        const scale = Math.min(mag, 1); // analog on touch, full on keyboard
+        this.moveCircle(
+          p,
+          p.x + (dx / mag) * sp * scale * dt,
+          p.y + (dy / mag) * sp * scale * dt,
+        );
         p.legPhase += dt * 12;
       }
 
@@ -929,7 +965,7 @@
         p.reloading = false;
         p.ammo = this.op.weapon.mag;
       }
-      if (this.mouse.down) this.shoot();
+      if (this.mouse.down || (Input.aiming && Input.fire)) this.shoot();
     }
 
     updateEnemies(dt) {
@@ -938,6 +974,7 @@
         const canSee =
           dist2(e.x, e.y, p.x, p.y) < (11 * TILE) ** 2 &&
           losClear(this.grid, e.x, e.y, p.x, p.y);
+        e.canSee = canSee;
 
         if (canSee) {
           e.state = "engage";
@@ -997,17 +1034,24 @@
             e.target = null;
           }
         } else {
+          // Patrol. Roamers actively hunt — they re-path toward the player's
+          // general area, so combat always comes to you.
           e.wander.t -= dt;
           if (e.wander.t <= 0) {
             e.wander.t = rand(1.5, 3.5);
-            e.wander.a = rand(0, Math.PI * 2);
+            if (e.roamer) {
+              e.wander.a = Math.atan2(p.y - e.y, p.x - e.x) + rand(-0.7, 0.7);
+            } else {
+              e.wander.a = rand(0, Math.PI * 2);
+            }
           }
           const a = e.wander.a;
+          const wanderSpeed = e.roamer ? 0.7 : 0.4;
           e.angle = angLerp(e.angle, a, 0.05);
           this.moveCircle(
             e,
-            e.x + Math.cos(a) * e.speed * 0.4 * dt,
-            e.y + Math.sin(a) * e.speed * 0.4 * dt,
+            e.x + Math.cos(a) * e.speed * wanderSpeed * dt,
+            e.y + Math.sin(a) * e.speed * wanderSpeed * dt,
           );
         }
         if (e.muzzle > 0) e.muzzle -= dt;
@@ -1266,6 +1310,7 @@
       this.renderObjectives(ctx);
       this.renderFloaters(ctx);
       this.renderWaypoint(ctx);
+      this.renderThreat(ctx);
 
       ctx.restore();
       this.renderHUD(ctx);
@@ -1764,6 +1809,37 @@
       ctx.fillText(label, lx, ly);
     }
 
+    // Red chevron pointing to the nearest defender that currently has eyes on
+    // you — so you know where incoming fire is coming from and can fight back.
+    renderThreat(ctx) {
+      const p = this.player;
+      let threat = null,
+        bd = Infinity;
+      for (const e of this.enemies) {
+        if (!e.canSee) continue;
+        const d = dist2(e.x, e.y, p.x, p.y);
+        if (d < bd) {
+          bd = d;
+          threat = e;
+        }
+      }
+      if (!threat) return;
+      const ang = Math.atan2(threat.y - p.y, threat.x - p.x);
+      const r = p.radius + 40;
+      const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 120);
+      ctx.save();
+      ctx.translate(p.x + Math.cos(ang) * r, p.y + Math.sin(ang) * r);
+      ctx.rotate(ang);
+      ctx.fillStyle = "rgba(255,60,50," + pulse + ")";
+      ctx.beginPath();
+      ctx.moveTo(9, 0);
+      ctx.lineTo(-3, -6);
+      ctx.lineTo(-3, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
     renderHUD(ctx) {
       const p = this.player;
 
@@ -1858,7 +1934,13 @@
     document
       .querySelectorAll(".screen")
       .forEach((s) => s.classList.add("hidden"));
-    if (id) document.getElementById(id).classList.remove("hidden");
+    if (id) {
+      document.getElementById(id).classList.remove("hidden");
+      document.body.classList.remove("playing");
+    } else {
+      // show(null) is only used when a round starts — enable in-game overlays.
+      document.body.classList.add("playing");
+    }
   }
 
   function loop(now) {
@@ -1873,9 +1955,17 @@
     }
   }
 
+  function resetInput() {
+    Input.moveX = 0;
+    Input.moveY = 0;
+    Input.aiming = false;
+    Input.fire = false;
+  }
+
   function startGame(opKey) {
     if (game) game.destroy();
     if (raf) cancelAnimationFrame(raf);
+    resetInput();
     Audio.resume();
     game = new Game(canvas, opKey);
     show(null);
@@ -1890,6 +1980,7 @@
   }
 
   function showEnd(won, reason) {
+    resetInput();
     document.getElementById("hud").classList.add("hidden");
     const el = document.getElementById("end");
     el.classList.remove("hidden");
@@ -1941,6 +2032,154 @@
   document
     .getElementById("btn-back")
     .addEventListener("click", () => show("menu"));
+
+  // ---------------------------------------------------------------------------
+  // Help overlay (works on desktop and mobile)
+  // ---------------------------------------------------------------------------
+  const helpBtn = document.getElementById("btn-help");
+  const helpScreen = document.getElementById("help");
+  const helpClose = document.getElementById("btn-help-close");
+  if (helpBtn)
+    helpBtn.addEventListener("click", () =>
+      helpScreen.classList.remove("hidden"),
+    );
+  if (helpClose)
+    helpClose.addEventListener("click", () =>
+      helpScreen.classList.add("hidden"),
+    );
+  window.addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    if (k === "h") helpScreen.classList.toggle("hidden");
+    if (k === "escape") helpScreen.classList.add("hidden");
+  });
+
+  // ---------------------------------------------------------------------------
+  // Touch controls — twin-stick: left stick moves, right stick aims & fires,
+  // plus RELOAD / GADGET / ACTION buttons. Shown only on touch devices.
+  // ---------------------------------------------------------------------------
+  function setupTouch() {
+    const coarse =
+      window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    const isTouch =
+      coarse || "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    if (!isTouch) return;
+    document.body.classList.add("touch");
+
+    const stick = (baseId, thumbId, onVec) => {
+      const base = document.getElementById(baseId);
+      const thumb = document.getElementById(thumbId);
+      if (!base) return;
+      let id = null,
+        cx = 0,
+        cy = 0;
+      const R = 46;
+      const start = (t) => {
+        id = t.identifier;
+        const r = base.getBoundingClientRect();
+        cx = r.left + r.width / 2;
+        cy = r.top + r.height / 2;
+        move(t);
+      };
+      const move = (t) => {
+        let dx = t.clientX - cx,
+          dy = t.clientY - cy;
+        const mag = Math.hypot(dx, dy) || 1;
+        const cl = Math.min(mag, R);
+        const nx = (dx / mag) * cl,
+          ny = (dy / mag) * cl;
+        thumb.style.transform = `translate(${nx}px, ${ny}px)`;
+        onVec(dx / R, dy / R, mag); // may exceed 1; consumer clamps
+      };
+      const end = () => {
+        id = null;
+        thumb.style.transform = "translate(0,0)";
+        onVec(0, 0, 0);
+      };
+      base.addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault();
+          Audio.resume();
+          start(e.changedTouches[0]);
+        },
+        { passive: false },
+      );
+      base.addEventListener(
+        "touchmove",
+        (e) => {
+          e.preventDefault();
+          for (const t of e.changedTouches) if (t.identifier === id) move(t);
+        },
+        { passive: false },
+      );
+      const onEnd = (e) => {
+        for (const t of e.changedTouches) if (t.identifier === id) end();
+      };
+      base.addEventListener("touchend", onEnd);
+      base.addEventListener("touchcancel", onEnd);
+    };
+
+    // left stick → analog movement
+    stick("stick-move", "stick-move-thumb", (x, y) => {
+      const mag = Math.hypot(x, y);
+      Input.moveX = mag > 1 ? x / mag : x;
+      Input.moveY = mag > 1 ? y / mag : y;
+    });
+    // right stick → aim + auto-fire (only fires past a small deadzone)
+    stick("stick-aim", "stick-aim-thumb", (x, y, mag) => {
+      if (mag > 8) {
+        Input.aiming = true;
+        Input.aimAngle = Math.atan2(y, x);
+        Input.fire = true;
+      } else {
+        Input.aiming = false;
+        Input.fire = false;
+      }
+    });
+
+    const tapBtn = (id, fn) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault();
+          Audio.resume();
+          if (window.SIEGE_GAME) fn(window.SIEGE_GAME);
+          el.classList.add("pressed");
+        },
+        { passive: false },
+      );
+      el.addEventListener("touchend", () => el.classList.remove("pressed"));
+    };
+    tapBtn("tb-reload", (g) => g.startReload());
+    tapBtn("tb-gadget", (g) => g.useGadget());
+    // ACTION: hold to plant when on a site, tap to melee-breach otherwise.
+    const act = document.getElementById("tb-action");
+    if (act) {
+      act.addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault();
+          Audio.resume();
+          const g = window.SIEGE_GAME;
+          if (!g) return;
+          g.keys["f"] = true; // held → planting works in update()
+          g.interactEdge(); // edge → melee breach when not on a site
+          act.classList.add("pressed");
+        },
+        { passive: false },
+      );
+      const release = () => {
+        const g = window.SIEGE_GAME;
+        if (g) g.keys["f"] = false;
+        act.classList.remove("pressed");
+      };
+      act.addEventListener("touchend", release);
+      act.addEventListener("touchcancel", release);
+    }
+  }
+  setupTouch();
 
   show("menu");
 })();
