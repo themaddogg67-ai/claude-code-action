@@ -1,0 +1,31 @@
+name: Publish to external host
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [gh-pages]
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload to catbox.moe (anonymous, no account)
+        run: |
+          set -e
+          echo "Uploading index.html ($(wc -c < index.html) bytes) to catbox.moe..."
+          URL=$(curl -sS --retry 3 -F "reqtype=fileupload" -F "fileToUpload=@index.html" https://catbox.moe/user/api.php)
+          echo "CATBOX_RESULT<<END"
+          echo "$URL"
+          echo "END"
+          echo "### Public (non-GitHub) link" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Catbox: $URL" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload to 0x0.st (fallback)
+        if: always()
+        run: |
+          URL=$(curl -sS -F "file=@index.html" -H "User-Agent: siege2d-ci" https://0x0.st || echo "failed")
+          echo "NULLPOINTER_RESULT<<END"
+          echo "$URL"
+          echo "END"
+          echo "0x0.st: $URL" >> "$GITHUB_STEP_SUMMARY"
