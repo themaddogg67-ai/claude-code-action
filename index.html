@@ -20,6 +20,10 @@ body {
   color: var(--text);
   font-family: "Segoe UI", Roboto, system-ui, sans-serif;
   min-height: 100vh;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 #app {
@@ -328,6 +332,211 @@ kbd {
   font-weight: 700;
 }
 
+/* ---- Menu control hints ---- */
+.ctrl-head {
+  margin-top: 8px;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+.controls b {
+  color: #ffd25a;
+  font-family: monospace;
+}
+
+/* ---- In-game help button ---- */
+#btn-help {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid #3a4048;
+  background: rgba(10, 12, 16, 0.8);
+  color: var(--text);
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  display: none;
+  z-index: 6;
+}
+body.playing #btn-help {
+  display: block;
+}
+#btn-help:hover {
+  border-color: #565f6b;
+}
+
+/* ---- Help overlay ---- */
+.help-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  text-align: left;
+  margin: 10px 0 6px;
+}
+.help-col h3,
+.help-goal h3 {
+  font-size: 14px;
+  margin: 0 0 8px;
+  letter-spacing: 1px;
+  color: var(--text);
+}
+.help-col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.help-col li {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.help-col li b,
+.help-goal b {
+  color: #ffd25a;
+}
+.help-goal {
+  text-align: left;
+  border-top: 1px solid #2a2f38;
+  padding-top: 12px;
+  margin-top: 4px;
+}
+.help-goal p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+.help-goal .def {
+  color: #ffd25a;
+  font-family: monospace;
+  font-weight: 700;
+}
+
+/* ---- Touch controls ---- */
+#touch {
+  position: absolute;
+  inset: 0;
+  display: none;
+  z-index: 4;
+  pointer-events: none;
+  touch-action: none;
+}
+body.touch.playing #touch {
+  display: block;
+}
+.stick {
+  position: absolute;
+  bottom: 18px;
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  pointer-events: auto;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#stick-move {
+  left: 18px;
+}
+#stick-aim {
+  right: 18px;
+  border-color: rgba(255, 120, 90, 0.35);
+}
+.thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+#stick-aim .thumb {
+  background: rgba(255, 120, 90, 0.35);
+  border-color: rgba(255, 120, 90, 0.6);
+}
+.stick-label {
+  position: absolute;
+  bottom: -16px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  pointer-events: none;
+}
+#touch-buttons {
+  position: absolute;
+  right: 138px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 12px;
+  pointer-events: none;
+}
+.tbtn {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(20, 24, 30, 0.85);
+  color: var(--text);
+  font-weight: 800;
+  font-size: 18px;
+  font-family: monospace;
+  pointer-events: auto;
+  touch-action: none;
+}
+.tbtn.act {
+  border-color: #ffd25a;
+  color: #ffd25a;
+}
+.tbtn.pressed {
+  background: rgba(255, 210, 90, 0.3);
+  transform: scale(0.94);
+}
+
+/* ---- Mobile / small-screen layout ---- */
+@media (max-width: 720px), (pointer: coarse) {
+  #app {
+    padding: 0;
+    gap: 0;
+  }
+  #stage {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    border: none;
+    border-radius: 0;
+    aspect-ratio: auto;
+  }
+  #game {
+    object-fit: contain;
+  }
+  .objective-note {
+    display: none;
+  }
+  .panel {
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 22px 22px;
+  }
+  h1 {
+    font-size: 40px;
+  }
+  .help-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
 </style>
 <div id="app">
       <div id="stage">
@@ -365,6 +574,26 @@ kbd {
           </div>
         </div>
 
+        <!-- Help button (in-game) -->
+        <button id="btn-help" title="Controls &amp; help">?</button>
+
+        <!-- Touch controls (mobile only, shown while playing) -->
+        <div id="touch">
+          <div id="stick-move" class="stick">
+            <div id="stick-move-thumb" class="thumb"></div>
+            <span class="stick-label">MOVE</span>
+          </div>
+          <div id="touch-buttons">
+            <button id="tb-reload" class="tbtn">R</button>
+            <button id="tb-gadget" class="tbtn">E</button>
+            <button id="tb-action" class="tbtn act">F</button>
+          </div>
+          <div id="stick-aim" class="stick">
+            <div id="stick-aim-thumb" class="thumb"></div>
+            <span class="stick-label">AIM · FIRE</span>
+          </div>
+        </div>
+
         <!-- Main menu -->
         <div id="menu" class="screen">
           <div class="panel">
@@ -375,15 +604,19 @@ kbd {
             </p>
             <button id="btn-start" class="btn btn-primary">DEPLOY</button>
             <div class="controls">
+              <div class="ctrl-head">💻 Keyboard &amp; mouse</div>
               <div>
                 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move ·
                 <kbd>MOUSE</kbd> aim · <kbd>CLICK</kbd> fire
               </div>
               <div><kbd>R</kbd> reload · <kbd>E</kbd> gadget</div>
               <div>
-                <kbd>F</kbd> melee-breach a wooden wall / hold on a site to
-                plant
+                <kbd>F</kbd> breach wooden wall / hold on a site to plant ·
+                <kbd>H</kbd> help
               </div>
+              <div class="ctrl-head">📱 Touch</div>
+              <div>Left stick move · right stick aim &amp; fire</div>
+              <div><b>R</b>/<b>E</b>/<b>F</b> buttons on the right</div>
             </div>
           </div>
         </div>
@@ -403,6 +636,57 @@ kbd {
             <h2 id="end-title">MISSION COMPLETE</h2>
             <p id="end-reason" class="tag"></p>
             <button id="btn-replay" class="btn btn-primary">PLAY AGAIN</button>
+          </div>
+        </div>
+
+        <!-- Help / controls overlay -->
+        <div id="help" class="screen hidden">
+          <div class="panel wide">
+            <h2>HOW TO PLAY</h2>
+            <div class="help-grid">
+              <div class="help-col">
+                <h3>💻 Keyboard &amp; mouse</h3>
+                <ul>
+                  <li>
+                    <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> — move
+                  </li>
+                  <li><kbd>MOUSE</kbd> — aim</li>
+                  <li><kbd>CLICK</kbd> (hold) — fire</li>
+                  <li><kbd>R</kbd> — reload</li>
+                  <li><kbd>E</kbd> — operator gadget</li>
+                  <li>
+                    <kbd>F</kbd> — breach a wooden wall you face; hold on a bomb
+                    site to plant
+                  </li>
+                  <li><kbd>H</kbd> — open/close this help</li>
+                </ul>
+              </div>
+              <div class="help-col">
+                <h3>📱 Touch (phone / tablet)</h3>
+                <ul>
+                  <li><b>Left stick</b> — move</li>
+                  <li><b>Right stick</b> — aim &amp; auto-fire</li>
+                  <li><b>R</b> button — reload</li>
+                  <li><b>E</b> button — gadget</li>
+                  <li>
+                    <b>F</b> button — breach wall / hold on a site to plant
+                  </li>
+                  <li>Best played in <b>landscape</b>.</li>
+                </ul>
+              </div>
+            </div>
+            <div class="help-goal">
+              <h3>🎯 Goal</h3>
+              <p>
+                You're the attacker. Storm the building and either
+                <b>eliminate all defenders</b> (red) or reach bomb site
+                <span class="def">A</span>/<span class="def">B</span> — follow
+                the gold arrow &amp; dashed line — and hold <b>F</b> to plant
+                the defuser, then survive the countdown. A
+                <b>red arrow</b> points to any defender shooting at you.
+              </p>
+            </div>
+            <button id="btn-help-close" class="btn btn-primary">GOT IT</button>
           </div>
         </div>
       </div>
@@ -590,6 +874,15 @@ kbd {
   };
   const blocksMove = (t) => t === REINF || t === SOFT || t === WINDOW;
   const blocksSight = (t) => t === REINF || t === SOFT;
+
+  // Shared input state, fed by keyboard/mouse AND by the on-screen touch controls.
+  const Input = {
+    moveX: 0, // analog move vector (-1..1), from the left joystick
+    moveY: 0,
+    aiming: false, // right joystick engaged → aim + auto-fire
+    aimAngle: 0,
+    fire: false,
+  };
 
   // ---------------------------------------------------------------------------
   // Audio (tiny WebAudio synth — no assets)
@@ -904,6 +1197,20 @@ kbd {
       };
 
       this.enemies = map.enemySpawns.map((s) => new Enemy(s.x, s.y));
+      // Make two defenders active "roamers" that hunt you down, so there is
+      // always a fight coming toward you rather than only static campers.
+      const roamers = this.enemies
+        .slice()
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 2);
+      for (const e of roamers) {
+        e.roamer = true;
+        e.state = "alert";
+        e.target = {
+          x: this.player ? this.player.x : map.playerSpawn.x,
+          y: map.playerSpawn.y,
+        };
+      }
       this.bullets = [];
       this.particles = [];
       this.floaters = [];
@@ -1326,19 +1633,32 @@ kbd {
 
     updatePlayer(dt) {
       const p = this.player;
-      p.angle = Math.atan2(this.mouse.y - p.y, this.mouse.x - p.x);
+      // Aim: touch right-stick takes priority, otherwise the mouse.
+      if (Input.aiming) p.angle = Input.aimAngle;
+      else p.angle = Math.atan2(this.mouse.y - p.y, this.mouse.x - p.x);
+
       const shielded = p.shieldUp;
       let sp = p.speed * (shielded ? 0.55 : 1);
 
+      // Movement: keyboard (digital) OR touch left-stick (analog).
       let dx = 0,
         dy = 0;
       if (this.keys["w"]) dy -= 1;
       if (this.keys["s"]) dy += 1;
       if (this.keys["a"]) dx -= 1;
       if (this.keys["d"]) dx += 1;
-      if (dx || dy) {
-        const l = Math.hypot(dx, dy);
-        this.moveCircle(p, p.x + (dx / l) * sp * dt, p.y + (dy / l) * sp * dt);
+      if (Input.moveX || Input.moveY) {
+        dx += Input.moveX;
+        dy += Input.moveY;
+      }
+      const mag = Math.hypot(dx, dy);
+      if (mag > 0.01) {
+        const scale = Math.min(mag, 1); // analog on touch, full on keyboard
+        this.moveCircle(
+          p,
+          p.x + (dx / mag) * sp * scale * dt,
+          p.y + (dy / mag) * sp * scale * dt,
+        );
         p.legPhase += dt * 12;
       }
 
@@ -1346,7 +1666,7 @@ kbd {
         p.reloading = false;
         p.ammo = this.op.weapon.mag;
       }
-      if (this.mouse.down) this.shoot();
+      if (this.mouse.down || (Input.aiming && Input.fire)) this.shoot();
     }
 
     updateEnemies(dt) {
@@ -1355,6 +1675,7 @@ kbd {
         const canSee =
           dist2(e.x, e.y, p.x, p.y) < (11 * TILE) ** 2 &&
           losClear(this.grid, e.x, e.y, p.x, p.y);
+        e.canSee = canSee;
 
         if (canSee) {
           e.state = "engage";
@@ -1414,17 +1735,24 @@ kbd {
             e.target = null;
           }
         } else {
+          // Patrol. Roamers actively hunt — they re-path toward the player's
+          // general area, so combat always comes to you.
           e.wander.t -= dt;
           if (e.wander.t <= 0) {
             e.wander.t = rand(1.5, 3.5);
-            e.wander.a = rand(0, Math.PI * 2);
+            if (e.roamer) {
+              e.wander.a = Math.atan2(p.y - e.y, p.x - e.x) + rand(-0.7, 0.7);
+            } else {
+              e.wander.a = rand(0, Math.PI * 2);
+            }
           }
           const a = e.wander.a;
+          const wanderSpeed = e.roamer ? 0.7 : 0.4;
           e.angle = angLerp(e.angle, a, 0.05);
           this.moveCircle(
             e,
-            e.x + Math.cos(a) * e.speed * 0.4 * dt,
-            e.y + Math.sin(a) * e.speed * 0.4 * dt,
+            e.x + Math.cos(a) * e.speed * wanderSpeed * dt,
+            e.y + Math.sin(a) * e.speed * wanderSpeed * dt,
           );
         }
         if (e.muzzle > 0) e.muzzle -= dt;
@@ -1683,6 +2011,7 @@ kbd {
       this.renderObjectives(ctx);
       this.renderFloaters(ctx);
       this.renderWaypoint(ctx);
+      this.renderThreat(ctx);
 
       ctx.restore();
       this.renderHUD(ctx);
@@ -2181,6 +2510,37 @@ kbd {
       ctx.fillText(label, lx, ly);
     }
 
+    // Red chevron pointing to the nearest defender that currently has eyes on
+    // you — so you know where incoming fire is coming from and can fight back.
+    renderThreat(ctx) {
+      const p = this.player;
+      let threat = null,
+        bd = Infinity;
+      for (const e of this.enemies) {
+        if (!e.canSee) continue;
+        const d = dist2(e.x, e.y, p.x, p.y);
+        if (d < bd) {
+          bd = d;
+          threat = e;
+        }
+      }
+      if (!threat) return;
+      const ang = Math.atan2(threat.y - p.y, threat.x - p.x);
+      const r = p.radius + 40;
+      const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 120);
+      ctx.save();
+      ctx.translate(p.x + Math.cos(ang) * r, p.y + Math.sin(ang) * r);
+      ctx.rotate(ang);
+      ctx.fillStyle = "rgba(255,60,50," + pulse + ")";
+      ctx.beginPath();
+      ctx.moveTo(9, 0);
+      ctx.lineTo(-3, -6);
+      ctx.lineTo(-3, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
     renderHUD(ctx) {
       const p = this.player;
 
@@ -2275,7 +2635,13 @@ kbd {
     document
       .querySelectorAll(".screen")
       .forEach((s) => s.classList.add("hidden"));
-    if (id) document.getElementById(id).classList.remove("hidden");
+    if (id) {
+      document.getElementById(id).classList.remove("hidden");
+      document.body.classList.remove("playing");
+    } else {
+      // show(null) is only used when a round starts — enable in-game overlays.
+      document.body.classList.add("playing");
+    }
   }
 
   function loop(now) {
@@ -2290,9 +2656,17 @@ kbd {
     }
   }
 
+  function resetInput() {
+    Input.moveX = 0;
+    Input.moveY = 0;
+    Input.aiming = false;
+    Input.fire = false;
+  }
+
   function startGame(opKey) {
     if (game) game.destroy();
     if (raf) cancelAnimationFrame(raf);
+    resetInput();
     Audio.resume();
     game = new Game(canvas, opKey);
     show(null);
@@ -2307,6 +2681,7 @@ kbd {
   }
 
   function showEnd(won, reason) {
+    resetInput();
     document.getElementById("hud").classList.add("hidden");
     const el = document.getElementById("end");
     el.classList.remove("hidden");
@@ -2358,6 +2733,154 @@ kbd {
   document
     .getElementById("btn-back")
     .addEventListener("click", () => show("menu"));
+
+  // ---------------------------------------------------------------------------
+  // Help overlay (works on desktop and mobile)
+  // ---------------------------------------------------------------------------
+  const helpBtn = document.getElementById("btn-help");
+  const helpScreen = document.getElementById("help");
+  const helpClose = document.getElementById("btn-help-close");
+  if (helpBtn)
+    helpBtn.addEventListener("click", () =>
+      helpScreen.classList.remove("hidden"),
+    );
+  if (helpClose)
+    helpClose.addEventListener("click", () =>
+      helpScreen.classList.add("hidden"),
+    );
+  window.addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    if (k === "h") helpScreen.classList.toggle("hidden");
+    if (k === "escape") helpScreen.classList.add("hidden");
+  });
+
+  // ---------------------------------------------------------------------------
+  // Touch controls — twin-stick: left stick moves, right stick aims & fires,
+  // plus RELOAD / GADGET / ACTION buttons. Shown only on touch devices.
+  // ---------------------------------------------------------------------------
+  function setupTouch() {
+    const coarse =
+      window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    const isTouch =
+      coarse || "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    if (!isTouch) return;
+    document.body.classList.add("touch");
+
+    const stick = (baseId, thumbId, onVec) => {
+      const base = document.getElementById(baseId);
+      const thumb = document.getElementById(thumbId);
+      if (!base) return;
+      let id = null,
+        cx = 0,
+        cy = 0;
+      const R = 46;
+      const start = (t) => {
+        id = t.identifier;
+        const r = base.getBoundingClientRect();
+        cx = r.left + r.width / 2;
+        cy = r.top + r.height / 2;
+        move(t);
+      };
+      const move = (t) => {
+        let dx = t.clientX - cx,
+          dy = t.clientY - cy;
+        const mag = Math.hypot(dx, dy) || 1;
+        const cl = Math.min(mag, R);
+        const nx = (dx / mag) * cl,
+          ny = (dy / mag) * cl;
+        thumb.style.transform = `translate(${nx}px, ${ny}px)`;
+        onVec(dx / R, dy / R, mag); // may exceed 1; consumer clamps
+      };
+      const end = () => {
+        id = null;
+        thumb.style.transform = "translate(0,0)";
+        onVec(0, 0, 0);
+      };
+      base.addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault();
+          Audio.resume();
+          start(e.changedTouches[0]);
+        },
+        { passive: false },
+      );
+      base.addEventListener(
+        "touchmove",
+        (e) => {
+          e.preventDefault();
+          for (const t of e.changedTouches) if (t.identifier === id) move(t);
+        },
+        { passive: false },
+      );
+      const onEnd = (e) => {
+        for (const t of e.changedTouches) if (t.identifier === id) end();
+      };
+      base.addEventListener("touchend", onEnd);
+      base.addEventListener("touchcancel", onEnd);
+    };
+
+    // left stick → analog movement
+    stick("stick-move", "stick-move-thumb", (x, y) => {
+      const mag = Math.hypot(x, y);
+      Input.moveX = mag > 1 ? x / mag : x;
+      Input.moveY = mag > 1 ? y / mag : y;
+    });
+    // right stick → aim + auto-fire (only fires past a small deadzone)
+    stick("stick-aim", "stick-aim-thumb", (x, y, mag) => {
+      if (mag > 8) {
+        Input.aiming = true;
+        Input.aimAngle = Math.atan2(y, x);
+        Input.fire = true;
+      } else {
+        Input.aiming = false;
+        Input.fire = false;
+      }
+    });
+
+    const tapBtn = (id, fn) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault();
+          Audio.resume();
+          if (window.SIEGE_GAME) fn(window.SIEGE_GAME);
+          el.classList.add("pressed");
+        },
+        { passive: false },
+      );
+      el.addEventListener("touchend", () => el.classList.remove("pressed"));
+    };
+    tapBtn("tb-reload", (g) => g.startReload());
+    tapBtn("tb-gadget", (g) => g.useGadget());
+    // ACTION: hold to plant when on a site, tap to melee-breach otherwise.
+    const act = document.getElementById("tb-action");
+    if (act) {
+      act.addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault();
+          Audio.resume();
+          const g = window.SIEGE_GAME;
+          if (!g) return;
+          g.keys["f"] = true; // held → planting works in update()
+          g.interactEdge(); // edge → melee breach when not on a site
+          act.classList.add("pressed");
+        },
+        { passive: false },
+      );
+      const release = () => {
+        const g = window.SIEGE_GAME;
+        if (g) g.keys["f"] = false;
+        act.classList.remove("pressed");
+      };
+      act.addEventListener("touchend", release);
+      act.addEventListener("touchcancel", release);
+    }
+  }
+  setupTouch();
 
   show("menu");
 })();
