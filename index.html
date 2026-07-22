@@ -331,6 +331,28 @@ kbd {
   font-family: monospace;
   font-weight: 700;
 }
+body.playing .objective-note {
+  display: none;
+}
+
+/* ---- Menu buttons stack full-width ---- */
+#menu .btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+}
+.duel-keys {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.duel-keys li {
+  font-size: 13px;
+  color: var(--muted);
+}
 
 /* ---- Menu control hints ---- */
 .ctrl-head {
@@ -602,7 +624,10 @@ body.touch.playing #touch {
               A top-down tactical breach. Storm the building, breach the walls,
               eliminate the defenders.
             </p>
-            <button id="btn-start" class="btn btn-primary">DEPLOY</button>
+            <button id="btn-start" class="btn btn-primary">
+              1 PLAYER · vs AI
+            </button>
+            <button id="btn-duel" class="btn">2 PLAYERS · 1v1 DUEL</button>
             <div class="controls">
               <div class="ctrl-head">💻 Keyboard &amp; mouse</div>
               <div>
@@ -676,7 +701,7 @@ body.touch.playing #touch {
               </div>
             </div>
             <div class="help-goal">
-              <h3>🎯 Goal</h3>
+              <h3>🎯 Goal (1 player)</h3>
               <p>
                 You're the attacker. Storm the building and either
                 <b>eliminate all defenders</b> (red) or reach bomb site
@@ -685,6 +710,26 @@ body.touch.playing #touch {
                 the defuser, then survive the countdown. A
                 <b>red arrow</b> points to any defender shooting at you.
               </p>
+            </div>
+            <div class="help-goal">
+              <h3>🎮 2 Players · 1v1 duel (same keyboard)</h3>
+              <p>
+                Two humans, one keyboard, no AI. You face where you walk and
+                shoot forward. Last one standing wins; if time runs out the
+                higher health wins.
+              </p>
+              <ul class="duel-keys">
+                <li>
+                  <b style="color: #f2b134">Player 1</b> — <kbd>W</kbd
+                  ><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move ·
+                  <kbd>SPACE</kbd> shoot
+                </li>
+                <li>
+                  <b style="color: #48c0e8">Player 2</b> — <kbd>↑</kbd
+                  ><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> move ·
+                  <kbd>ENTER</kbd> shoot
+                </li>
+              </ul>
             </div>
             <button id="btn-help-close" class="btn btn-primary">GOT IT</button>
           </div>
@@ -850,6 +895,34 @@ body.touch.playing #touch {
         reload: 1800,
       },
     },
+  };
+
+  // Balanced loadout used by both sides in the local 1v1 duel.
+  const DUEL_WEAPON = {
+    name: "Duel Rifle",
+    pellets: 1,
+    spread: 0.06,
+    damage: 18,
+    range: 480,
+    fireInterval: 130,
+    mag: 30,
+    reload: 1900,
+  };
+  const DUEL_P1 = {
+    name: "Player 1 · Attacker",
+    color: "#f2b134",
+    vest: "#4a3a1a",
+    hp: 110,
+    speed: 168,
+    weapon: DUEL_WEAPON,
+  };
+  const DUEL_P2 = {
+    name: "Player 2 · Defender",
+    color: "#48c0e8",
+    vest: "#173a45",
+    hp: 110,
+    speed: 168,
+    weapon: DUEL_WEAPON,
   };
 
   // ---------------------------------------------------------------------------
@@ -1122,7 +1195,8 @@ body.touch.playing #touch {
   // Entities
   // ---------------------------------------------------------------------------
   class Bullet {
-    constructor(x, y, ang, speed, damage, range, friendly) {
+    // team: 0 = Player 1, 1 = Player 2, -1 = AI defender.
+    constructor(x, y, ang, speed, damage, range, team) {
       this.x = x;
       this.y = y;
       this.vx = Math.cos(ang) * speed;
@@ -1130,7 +1204,8 @@ body.touch.playing #touch {
       this.damage = damage;
       this.range = range;
       this.traveled = 0;
-      this.friendly = friendly;
+      this.team = team;
+      this.fromAI = team === -1;
       this.dead = false;
     }
   }
@@ -1157,12 +1232,43 @@ body.touch.playing #touch {
   // Game
   // ---------------------------------------------------------------------------
   class Game {
-    constructor(canvas, opKey) {
+    constructor(canvas, opKey, opts) {
       this.canvas = canvas;
       this.ctx = canvas.getContext("2d");
-      this.op = OPERATORS[opKey];
+      opts = opts || {};
+      this.mode = opts.mode || "solo"; // "solo" (vs AI) | "duel" (local 1v1)
+      this.twoPlayer = this.mode === "duel";
+      this.op = opKey ? OPERATORS[opKey] : null;
       this.reset();
       this.bindInput();
+    }
+
+    makeFighter(op, spawn, team, controls, aimMode) {
+      return {
+        x: spawn.x,
+        y: spawn.y,
+        radius: TILE * 0.34,
+        hp: op.hp,
+        maxHp: op.hp,
+        angle: team === 1 ? Math.PI : 0,
+        speed: op.speed,
+        ammo: op.weapon.mag,
+        mag: op.weapon.mag,
+        reloading: false,
+        reloadEnd: 0,
+        fireReady: 0,
+        gadgetUses: op.gadgetUses === undefined ? 0 : op.gadgetUses,
+        shieldUp: false,
+        legPhase: 0,
+        team,
+        op,
+        color: op.color,
+        vest: op.vest,
+        name: op.name,
+        controls,
+        aimMode,
+        alive: true,
+      };
     }
 
     reset() {
@@ -1171,34 +1277,78 @@ body.touch.playing #touch {
       this.vx = map.vx;
       this.hy = map.hy;
       this.props = map.props;
+      this.softHp = {};
+      this.bullets = [];
+      this.particles = [];
+      this.floaters = [];
+      this.charges = [];
+      this.time = this.twoPlayer ? 99 : 150;
+      this.state = "playing";
+      this.shake = 0;
+      this.vis = null;
+      this.msg = "";
+      this.msgT = 0;
+      this.meleeCd = 0;
+      this.duelWinner = undefined;
+      this.last = performance.now();
+
+      if (this.twoPlayer) {
+        // Local 1v1: two human fighters, no AI, no fog, no objective.
+        this.objectives = [];
+        this.enemies = [];
+        const rightSpawn = {
+          x: (COLS - 3) * TILE + TILE / 2,
+          y: (ROWS / 2) * TILE,
+        };
+        const p1Controls = {
+          up: "w",
+          left: "a",
+          down: "s",
+          right: "d",
+          shoot: " ",
+        };
+        const p2Controls = {
+          up: "arrowup",
+          left: "arrowleft",
+          down: "arrowdown",
+          right: "arrowright",
+          shoot: "enter",
+        };
+        this.player = this.makeFighter(
+          DUEL_P1,
+          map.playerSpawn,
+          0,
+          p1Controls,
+          "move",
+        );
+        this.player2 = this.makeFighter(
+          DUEL_P2,
+          rightSpawn,
+          1,
+          p2Controls,
+          "move",
+        );
+        this.fighters = [this.player, this.player2];
+        return;
+      }
+
+      // Solo vs AI (original mode).
       this.objectives = map.objectives.map((o) => ({
         ...o,
         radius: TILE * 0.5,
       }));
-      this.softHp = {};
-
-      const op = this.op;
-      this.player = {
-        x: map.playerSpawn.x,
-        y: map.playerSpawn.y,
-        radius: TILE * 0.34,
-        hp: op.hp,
-        maxHp: op.hp,
-        angle: 0,
-        speed: op.speed,
-        ammo: op.weapon.mag,
-        mag: op.weapon.mag,
-        reloading: false,
-        reloadEnd: 0,
-        fireReady: 0,
-        gadgetUses: op.gadgetUses,
-        shieldUp: false,
-        legPhase: 0,
-      };
+      const p1Controls = { up: "w", left: "a", down: "s", right: "d" };
+      this.player = this.makeFighter(
+        this.op,
+        map.playerSpawn,
+        0,
+        p1Controls,
+        "mouse",
+      );
+      this.fighters = [this.player];
 
       this.enemies = map.enemySpawns.map((s) => new Enemy(s.x, s.y));
-      // Make two defenders active "roamers" that hunt you down, so there is
-      // always a fight coming toward you rather than only static campers.
+      // Two defenders actively hunt you so a fight always comes to you.
       const roamers = this.enemies
         .slice()
         .sort(() => Math.random() - 0.5)
@@ -1206,30 +1356,14 @@ body.touch.playing #touch {
       for (const e of roamers) {
         e.roamer = true;
         e.state = "alert";
-        e.target = {
-          x: this.player ? this.player.x : map.playerSpawn.x,
-          y: map.playerSpawn.y,
-        };
+        e.target = { x: this.player.x, y: map.playerSpawn.y };
       }
-      this.bullets = [];
-      this.particles = [];
-      this.floaters = [];
-      this.charges = [];
 
       // Objective / defuser state
       this.plantProgress = 0;
       this.planted = false;
       this.plantedSite = null;
-      this.armTimer = 20; // seconds to defend once armed
-
-      this.time = 150;
-      this.state = "playing";
-      this.shake = 0;
-      this.vis = null;
-      this.msg = "";
-      this.msgT = 0;
-      this.meleeCd = 0;
-      this.last = performance.now();
+      this.armTimer = 20;
     }
 
     // ----- input --------------------------------------------------------------
@@ -1239,12 +1373,28 @@ body.touch.playing #touch {
 
       this._kd = (e) => {
         const k = e.key.toLowerCase();
-        if (["r", "e", "f", " "].includes(k)) e.preventDefault();
+        // Stop the page scrolling/submitting on the keys the game uses.
+        if (
+          [
+            "r",
+            "e",
+            "f",
+            " ",
+            "enter",
+            "arrowup",
+            "arrowdown",
+            "arrowleft",
+            "arrowright",
+          ].includes(k)
+        )
+          e.preventDefault();
         if (!this.keys[k]) {
-          // edge-triggered actions
-          if (k === "r") this.startReload();
-          if (k === "e") this.useGadget();
-          if (k === "f") this.interactEdge();
+          // edge-triggered actions (single-player gadget/melee/reload only)
+          if (!this.twoPlayer) {
+            if (k === "r") this.startReload();
+            if (k === "e") this.useGadget();
+            if (k === "f") this.interactEdge();
+          }
         }
         this.keys[k] = true;
       };
@@ -1334,49 +1484,49 @@ body.touch.playing #touch {
     }
 
     // ----- combat -------------------------------------------------------------
-    startReload() {
-      const p = this.player;
-      if (p.reloading || p.ammo === this.op.weapon.mag) return;
-      p.reloading = true;
-      p.reloadEnd = performance.now() + this.op.weapon.reload;
+    startReload(f) {
+      f = f || this.player;
+      if (f.reloading || f.ammo === f.op.weapon.mag) return;
+      f.reloading = true;
+      f.reloadEnd = performance.now() + f.op.weapon.reload;
       Audio.reload();
     }
 
-    shoot() {
-      const p = this.player;
+    shoot(f) {
+      f = f || this.player;
       const now = performance.now();
-      if (p.reloading || p.shieldUp) return;
-      if (now < p.fireReady || p.ammo <= 0) {
-        if (p.ammo <= 0) this.startReload();
+      if (f.reloading || f.shieldUp) return;
+      if (now < f.fireReady || f.ammo <= 0) {
+        if (f.ammo <= 0) this.startReload(f);
         return;
       }
-      const wpn = this.op.weapon;
-      p.fireReady = now + wpn.fireInterval;
-      p.ammo--;
+      const wpn = f.op.weapon;
+      f.fireReady = now + wpn.fireInterval;
+      f.ammo--;
       for (let i = 0; i < wpn.pellets; i++) {
-        const a = p.angle + rand(-wpn.spread, wpn.spread);
+        const a = f.angle + rand(-wpn.spread, wpn.spread);
         this.bullets.push(
           new Bullet(
-            p.x + Math.cos(p.angle) * p.radius,
-            p.y + Math.sin(p.angle) * p.radius,
+            f.x + Math.cos(f.angle) * f.radius,
+            f.y + Math.sin(f.angle) * f.radius,
             a,
             760,
             wpn.damage,
             wpn.range,
-            true,
+            f.team,
           ),
         );
       }
-      this.spawnMuzzle(p.x, p.y, p.angle, "#ffd25a");
+      this.spawnMuzzle(f.x, f.y, f.angle, "#ffd25a");
       this.shake = Math.min(this.shake + (wpn.pellets > 1 ? 6 : 2.5), 12);
       Audio.shoot();
       for (const e of this.enemies) {
         if (
-          dist2(e.x, e.y, p.x, p.y) < (9 * TILE) ** 2 &&
+          dist2(e.x, e.y, f.x, f.y) < (9 * TILE) ** 2 &&
           e.state === "patrol"
         ) {
           e.state = "alert";
-          e.target = { x: p.x, y: p.y };
+          e.target = { x: f.x, y: f.y };
           e.alertTimer = 4;
         }
       }
@@ -1609,16 +1759,19 @@ body.touch.playing #touch {
     // ----- update -------------------------------------------------------------
     update(dt) {
       if (this.state !== "playing") return;
+      if (this.msgT > 0) this.msgT -= dt;
+      if (this.meleeCd > 0) this.meleeCd -= dt;
+      if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 40);
+
+      if (this.twoPlayer) return this.updateDuel(dt);
+
       this.time -= dt;
       if (this.time <= 0 && !this.planted) {
         this.time = 0;
         return this.end(false, "Time ran out before you armed the defuser.");
       }
-      if (this.msgT > 0) this.msgT -= dt;
-      if (this.meleeCd > 0) this.meleeCd -= dt;
-      if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 40);
 
-      this.updatePlayer(dt);
+      this.updateFighter(this.player, dt);
       this.updateEnemies(dt);
       this.updateBullets(dt);
       this.updateCharges(dt);
@@ -1631,42 +1784,76 @@ body.touch.playing #touch {
       if (this.player.hp <= 0) this.end(false, "You were killed.");
     }
 
-    updatePlayer(dt) {
-      const p = this.player;
-      // Aim: touch right-stick takes priority, otherwise the mouse.
-      if (Input.aiming) p.angle = Input.aimAngle;
-      else p.angle = Math.atan2(this.mouse.y - p.y, this.mouse.x - p.x);
+    updateDuel(dt) {
+      this.time -= dt;
+      for (const f of this.fighters) this.updateFighter(f, dt);
+      this.updateBullets(dt);
+      this.updateParticles(dt);
 
-      const shielded = p.shieldUp;
-      let sp = p.speed * (shielded ? 0.55 : 1);
+      const alive = this.fighters.filter((f) => f.alive);
+      if (alive.length <= 1) {
+        const w = alive[0] || null;
+        this.state = "over";
+        this.duelWinner = w; // null → draw
+      } else if (this.time <= 0) {
+        this.time = 0;
+        this.state = "over";
+        // Higher HP wins on timeout; equal HP is a draw.
+        const [a, b] = this.fighters;
+        this.duelWinner = a.hp === b.hp ? null : a.hp > b.hp ? a : b;
+      }
+    }
 
-      // Movement: keyboard (digital) OR touch left-stick (analog).
+    updateFighter(f, dt) {
+      if (!f.alive) return;
+      const c = f.controls;
+
+      // Movement input: this fighter's keys, plus touch left-stick for solo P1.
       let dx = 0,
         dy = 0;
-      if (this.keys["w"]) dy -= 1;
-      if (this.keys["s"]) dy += 1;
-      if (this.keys["a"]) dx -= 1;
-      if (this.keys["d"]) dx += 1;
-      if (Input.moveX || Input.moveY) {
+      if (this.keys[c.up]) dy -= 1;
+      if (this.keys[c.down]) dy += 1;
+      if (this.keys[c.left]) dx -= 1;
+      if (this.keys[c.right]) dx += 1;
+      if (!this.twoPlayer && (Input.moveX || Input.moveY)) {
         dx += Input.moveX;
         dy += Input.moveY;
       }
+
+      const shielded = f.shieldUp;
+      const sp = f.speed * (shielded ? 0.55 : 1);
       const mag = Math.hypot(dx, dy);
       if (mag > 0.01) {
-        const scale = Math.min(mag, 1); // analog on touch, full on keyboard
+        const scale = Math.min(mag, 1);
         this.moveCircle(
-          p,
-          p.x + (dx / mag) * sp * scale * dt,
-          p.y + (dy / mag) * sp * scale * dt,
+          f,
+          f.x + (dx / mag) * sp * scale * dt,
+          f.y + (dy / mag) * sp * scale * dt,
         );
-        p.legPhase += dt * 12;
+        f.legPhase += dt * 12;
+        if (f.aimMode === "move") f.angle = Math.atan2(dy, dx); // face where you walk
       }
 
-      if (p.reloading && performance.now() >= p.reloadEnd) {
-        p.reloading = false;
-        p.ammo = this.op.weapon.mag;
+      // Aim for mouse/touch fighters (solo P1).
+      if (f.aimMode === "mouse") {
+        if (Input.aiming) f.angle = Input.aimAngle;
+        else f.angle = Math.atan2(this.mouse.y - f.y, this.mouse.x - f.x);
       }
-      if (this.mouse.down || (Input.aiming && Input.fire)) this.shoot();
+
+      if (f.reloading && performance.now() >= f.reloadEnd) {
+        f.reloading = false;
+        f.ammo = f.op.weapon.mag;
+      }
+
+      // Fire
+      let firing = false;
+      if (f.aimMode === "mouse")
+        firing = this.mouse.down || (Input.aiming && Input.fire);
+      if (c.shoot && this.keys[c.shoot]) firing = true;
+      if (firing) this.shoot(f);
+
+      // Auto-reload in the duel to keep the control scheme minimal.
+      if (this.twoPlayer && f.ammo <= 0 && !f.reloading) this.startReload(f);
     }
 
     updateEnemies(dt) {
@@ -1809,7 +1996,8 @@ body.touch.playing #touch {
             break;
           }
 
-          if (b.friendly) {
+          if (!b.fromAI) {
+            // A fighter's bullet: hits AI defenders...
             for (const e of this.enemies) {
               if (dist2(b.x, b.y, e.x, e.y) < e.radius * e.radius) {
                 e.hp -= b.damage;
@@ -1829,31 +2017,57 @@ body.touch.playing #touch {
                 break;
               }
             }
-          } else {
-            if (dist2(b.x, b.y, p.x, p.y) < p.radius * p.radius) {
-              if (p.shieldUp) {
-                const toB = Math.atan2(b.y - p.y, b.x - p.x);
-                let diff = Math.abs(
-                  ((toB - p.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI,
-                );
-                if (diff < 1.1) {
-                  b.dead = true;
-                  this.spawnDebris(b.x, b.y, "#6ad06a");
-                  break;
-                }
+            // ...and any OTHER-team fighter (the opponent in a duel).
+            if (!b.dead) {
+              for (const f of this.fighters) {
+                if (!f.alive || f.team === b.team) continue;
+                if (this.bulletHitsFighter(b, f)) break;
               }
-              p.hp -= b.damage;
-              b.dead = true;
-              this.spawnBlood(b.x, b.y);
-              this.shake = Math.min(this.shake + 5, 14);
-              Audio.hit();
-              break;
+            }
+          } else {
+            // AI bullet: hits any fighter.
+            for (const f of this.fighters) {
+              if (!f.alive) continue;
+              if (this.bulletHitsFighter(b, f)) break;
             }
           }
         }
       }
       this.enemies = this.enemies.filter((e) => e.hp > 0);
       this.bullets = this.bullets.filter((b) => !b.dead);
+    }
+
+    bulletHitsFighter(b, f) {
+      if (dist2(b.x, b.y, f.x, f.y) >= f.radius * f.radius) return false;
+      if (f.shieldUp) {
+        const toB = Math.atan2(b.y - f.y, b.x - f.x);
+        const diff = Math.abs(
+          ((toB - f.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI,
+        );
+        if (diff < 1.1) {
+          b.dead = true;
+          this.spawnDebris(b.x, b.y, "#6ad06a");
+          return true;
+        }
+      }
+      f.hp -= b.damage;
+      b.dead = true;
+      this.spawnBlood(b.x, b.y);
+      this.shake = Math.min(this.shake + 5, 14);
+      Audio.hit();
+      if (f.hp <= 0) {
+        f.hp = 0;
+        f.alive = false;
+        this.spawnBlood(f.x, f.y);
+        this.floaters.push({
+          x: f.x,
+          y: f.y,
+          t: 1.2,
+          text: "✖",
+          color: f.color,
+        });
+      }
+      return true;
     }
 
     updateCharges(dt) {
@@ -1969,6 +2183,7 @@ body.touch.playing #touch {
     }
 
     isVisible(px, py) {
+      if (this.twoPlayer) return true; // shared-screen duel: no fog
       const tx = Math.floor(px / TILE),
         ty = Math.floor(py / TILE);
       return this.vis && this.vis[tx + "," + ty];
@@ -1999,10 +2214,20 @@ body.touch.playing #touch {
 
       this.renderTiles(ctx);
       this.renderProps(ctx);
+      this.renderBullets(ctx);
+
+      if (this.twoPlayer) {
+        for (const f of this.fighters) if (f.alive) this.renderFighter(ctx, f);
+        this.renderParticles(ctx);
+        this.renderFloaters(ctx);
+        ctx.restore();
+        this.renderDuelHUD(ctx);
+        return;
+      }
+
       this.renderCharges(ctx);
       this.renderEnemies(ctx);
-      this.renderBullets(ctx);
-      this.renderPlayer(ctx);
+      this.renderFighter(ctx, this.player);
       this.renderParticles(ctx);
       this.renderFog(ctx);
       // Objective beacons + the guide to them draw ON TOP of fog so the plant
@@ -2398,17 +2623,22 @@ body.touch.playing #touch {
       }
     }
 
-    renderPlayer(ctx) {
-      const p = this.player;
-      const moving =
-        this.keys["w"] || this.keys["a"] || this.keys["s"] || this.keys["d"];
+    renderFighter(ctx, p) {
+      const c = p.controls;
+      const moving = !!(
+        this.keys[c.up] ||
+        this.keys[c.down] ||
+        this.keys[c.left] ||
+        this.keys[c.right] ||
+        (p.aimMode === "mouse" && (Input.moveX || Input.moveY))
+      );
       this.drawFighter(
         ctx,
         p.x,
         p.y,
         p.angle,
-        this.op.color,
-        this.op.vest,
+        p.color,
+        p.vest,
         p.radius,
         moving,
         p.legPhase,
@@ -2421,6 +2651,19 @@ body.touch.playing #touch {
       ctx.lineTo(p.x + Math.cos(p.angle) * 70, p.y + Math.sin(p.angle) * 70);
       ctx.stroke();
       ctx.setLineDash([]);
+
+      // In the duel, tag each fighter with its player number so they're easy to tell apart.
+      if (this.twoPlayer) {
+        ctx.fillStyle = p.color;
+        ctx.font = "bold 11px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("P" + (p.team + 1), p.x, p.y - p.radius - 8);
+        const w = 26;
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.fillRect(p.x - w / 2, p.y - p.radius - 6, w, 4);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x - w / 2, p.y - p.radius - 6, w * (p.hp / p.maxHp), 4);
+      }
 
       if (p.shieldUp) {
         ctx.save();
@@ -2541,6 +2784,43 @@ body.touch.playing #touch {
       ctx.restore();
     }
 
+    // Canvas HUD for the local 1v1 duel: a health/ammo panel for each player.
+    renderDuelHUD(ctx) {
+      const panel = (f, x, align) => {
+        const barW = 150;
+        const bx = align === "right" ? x - barW : x;
+        ctx.textAlign = align === "right" ? "right" : "left";
+        ctx.font = "bold 12px monospace";
+        ctx.fillStyle = f.color;
+        ctx.fillText(f.name, x, 22);
+        // health bar
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fillRect(bx, 28, barW, 12);
+        ctx.fillStyle = f.alive ? f.color : "#555";
+        ctx.fillRect(bx, 28, barW * clamp(f.hp / f.maxHp, 0, 1), 12);
+        ctx.strokeStyle = "rgba(255,255,255,0.25)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(bx + 0.5, 28.5, barW - 1, 11);
+        ctx.fillStyle = "#cfd6dd";
+        ctx.font = "11px monospace";
+        const ammo = f.reloading
+          ? "RELOADING"
+          : f.ammo + " / " + f.op.weapon.mag;
+        ctx.fillText(ammo + "   HP " + Math.max(0, Math.ceil(f.hp)), x, 54);
+      };
+      panel(this.player, 16, "left");
+      panel(this.player2, W - 46, "right"); // clear of the ? help button
+
+      // round timer, centered
+      const s = Math.ceil(this.time);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(W / 2 - 34, 12, 68, 26);
+      ctx.fillStyle = "#e8ebf0";
+      ctx.font = "bold 16px monospace";
+      ctx.fillText("0:" + (s < 10 ? "0" : "") + s, W / 2, 30);
+    }
+
     renderHUD(ctx) {
       const p = this.player;
 
@@ -2651,6 +2931,8 @@ body.touch.playing #touch {
     game.render();
     if (game.state === "playing") {
       raf = requestAnimationFrame(loop);
+    } else if (game.twoPlayer) {
+      showEndDuel(game.duelWinner);
     } else {
       showEnd(game.state === "won", game.endReason);
     }
@@ -2694,6 +2976,40 @@ body.touch.playing #touch {
     document.getElementById("end-reason").textContent = reason || "";
   }
 
+  function startDuel() {
+    if (game) game.destroy();
+    if (raf) cancelAnimationFrame(raf);
+    resetInput();
+    Audio.resume();
+    game = new Game(canvas, null, { mode: "duel" });
+    show(null);
+    document.getElementById("hud").classList.add("hidden"); // duel draws its own HUD
+    game.last = performance.now();
+    window.SIEGE_GAME = game;
+    raf = requestAnimationFrame(loop);
+  }
+
+  function showEndDuel(winner) {
+    resetInput();
+    document.getElementById("hud").classList.add("hidden");
+    const el = document.getElementById("end");
+    el.classList.remove("hidden");
+    const title = document.getElementById("end-title");
+    if (winner) {
+      title.textContent = "PLAYER " + (winner.team + 1) + " WINS";
+      title.style.color = winner.color;
+    } else {
+      title.textContent = "DRAW";
+      title.style.color = "#8b93a1";
+    }
+    document.getElementById("end-reason").textContent =
+      winner && winner.team === 0
+        ? "Attacker takes the round."
+        : winner && winner.team === 1
+          ? "Defender holds the round."
+          : "Both operators down — nobody wins.";
+  }
+
   const opList = document.getElementById("op-list");
   Object.entries(OPERATORS).forEach(([key, op]) => {
     const card = document.createElement("button");
@@ -2733,6 +3049,8 @@ body.touch.playing #touch {
   document
     .getElementById("btn-back")
     .addEventListener("click", () => show("menu"));
+  const btnDuel = document.getElementById("btn-duel");
+  if (btnDuel) btnDuel.addEventListener("click", () => startDuel());
 
   // ---------------------------------------------------------------------------
   // Help overlay (works on desktop and mobile)
