@@ -6,26 +6,26 @@ on:
     branches: [gh-pages]
 
 jobs:
-  upload:
+  verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Upload to catbox.moe (anonymous, no account)
+      - name: Test non-GitHub rendering CDNs
         run: |
-          set -e
-          echo "Uploading index.html ($(wc -c < index.html) bytes) to catbox.moe..."
-          URL=$(curl -sS --retry 3 -F "reqtype=fileupload" -F "fileToUpload=@index.html" https://catbox.moe/user/api.php)
-          echo "CATBOX_RESULT<<END"
-          echo "$URL"
-          echo "END"
-          echo "### Public (non-GitHub) link" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Catbox: $URL" >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload to 0x0.st (fallback)
+          SHA=$(git ls-remote https://github.com/themaddogg67-ai/claude-code-action gh-pages | cut -f1)
+          echo "gh-pages sha: $SHA"
+          test_url() {
+            local name="$1" url="$2"
+            local out=$(curl -sS -m 25 -o /dev/null -w "%{http_code} %{content_type}" -L "$url" || echo "000 error")
+            echo "$name | $out | $url"
+            echo "$name | $out | $url" >> "$GITHUB_STEP_SUMMARY"
+          }
+          echo "## Non-GitHub render CDNs" >> "$GITHUB_STEP_SUMMARY"
+          test_url "githack-dev  " "https://raw.githack.com/themaddogg67-ai/claude-code-action/gh-pages/index.html"
+          test_url "githack-cdn  " "https://rawcdn.githack.com/themaddogg67-ai/claude-code-action/$SHA/index.html"
+          test_url "statically   " "https://cdn.statically.io/gh/themaddogg67-ai/claude-code-action/gh-pages/index.html"
+          test_url "jsdelivr     " "https://cdn.jsdelivr.net/gh/themaddogg67-ai/claude-code-action@gh-pages/index.html"
+      - name: Try anonymous uploader (tmpfiles.org, temporary)
         if: always()
         run: |
-          URL=$(curl -sS -F "file=@index.html" -H "User-Agent: siege2d-ci" https://0x0.st || echo "failed")
-          echo "NULLPOINTER_RESULT<<END"
-          echo "$URL"
-          echo "END"
-          echo "0x0.st: $URL" >> "$GITHUB_STEP_SUMMARY"
+          RESP=$(curl -sS -m 25 -F "file=@-;filename=index.html;type=text/html" https://tmpfiles.org/api/v1/upload < <(git archive --remote=. 2>/dev/null; true) || true)
+          echo "tmpfiles raw: $RESP"
