@@ -329,6 +329,28 @@ kbd {
   font-family: monospace;
   font-weight: 700;
 }
+body.playing .objective-note {
+  display: none;
+}
+
+/* ---- Menu buttons stack full-width ---- */
+#menu .btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+}
+.duel-keys {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.duel-keys li {
+  font-size: 13px;
+  color: var(--muted);
+}
 
 /* ---- Menu control hints ---- */
 .ctrl-head {

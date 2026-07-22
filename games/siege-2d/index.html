@@ -74,7 +74,10 @@
               A top-down tactical breach. Storm the building, breach the walls,
               eliminate the defenders.
             </p>
-            <button id="btn-start" class="btn btn-primary">DEPLOY</button>
+            <button id="btn-start" class="btn btn-primary">
+              1 PLAYER · vs AI
+            </button>
+            <button id="btn-duel" class="btn">2 PLAYERS · 1v1 DUEL</button>
             <div class="controls">
               <div class="ctrl-head">💻 Keyboard &amp; mouse</div>
               <div>
@@ -148,7 +151,7 @@
               </div>
             </div>
             <div class="help-goal">
-              <h3>🎯 Goal</h3>
+              <h3>🎯 Goal (1 player)</h3>
               <p>
                 You're the attacker. Storm the building and either
                 <b>eliminate all defenders</b> (red) or reach bomb site
@@ -157,6 +160,26 @@
                 the defuser, then survive the countdown. A
                 <b>red arrow</b> points to any defender shooting at you.
               </p>
+            </div>
+            <div class="help-goal">
+              <h3>🎮 2 Players · 1v1 duel (same keyboard)</h3>
+              <p>
+                Two humans, one keyboard, no AI. You face where you walk and
+                shoot forward. Last one standing wins; if time runs out the
+                higher health wins.
+              </p>
+              <ul class="duel-keys">
+                <li>
+                  <b style="color: #f2b134">Player 1</b> — <kbd>W</kbd
+                  ><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move ·
+                  <kbd>SPACE</kbd> shoot
+                </li>
+                <li>
+                  <b style="color: #48c0e8">Player 2</b> — <kbd>↑</kbd
+                  ><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> move ·
+                  <kbd>ENTER</kbd> shoot
+                </li>
+              </ul>
             </div>
             <button id="btn-help-close" class="btn btn-primary">GOT IT</button>
           </div>
