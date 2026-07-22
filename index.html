@@ -375,9 +375,15 @@ kbd {
             </p>
             <button id="btn-start" class="btn btn-primary">DEPLOY</button>
             <div class="controls">
-              <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</div>
-              <div><kbd>MOUSE</kbd> aim · <kbd>CLICK</kbd> fire</div>
+              <div>
+                <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move ·
+                <kbd>MOUSE</kbd> aim · <kbd>CLICK</kbd> fire
+              </div>
               <div><kbd>R</kbd> reload · <kbd>E</kbd> gadget</div>
+              <div>
+                <kbd>F</kbd> melee-breach a wooden wall / hold on a site to
+                plant
+              </div>
             </div>
           </div>
         </div>
@@ -402,8 +408,10 @@ kbd {
       </div>
 
       <div class="objective-note">
-        Objective: eliminate every defender, or stand on a
-        <span class="def">DEF</span> point for 4s to secure it.
+        Objective: reach a bomb site (<span class="def">A</span> or
+        <span class="def">B</span>, follow the gold arrow), hold
+        <span class="def">F</span> to plant &amp; arm the defuser — then
+        survive. Or just eliminate every defender.
       </div>
     </div>
 <script>
@@ -412,8 +420,8 @@ kbd {
  *
  * You play the attacker breaching a building held by AI defenders. Core Siege
  * ideas translated to 2D: reinforced vs destructible walls, breaching gadgets,
- * line-of-sight fog of war, and an objective to secure. Eliminate every
- * defender or defuse the objective before the timer runs out.
+ * cover props, line-of-sight fog of war, and a defuser to plant. Eliminate every
+ * defender or plant and arm the defuser before the timer runs out.
  *
  * Pure browser game, no build step — open index.html directly.
  */
@@ -434,12 +442,35 @@ kbd {
   const EXT = 0; // exterior ground (passable)
   const FLOOR = 1; // interior floor (passable)
   const REINF = 2; // reinforced wall (indestructible, blocks all)
-  const SOFT = 3; // soft wall (destructible, blocks move + sight)
+  const SOFT = 3; // wooden wall (destructible, blocks move + sight)
   const RUBBLE = 4; // breached wall (passable, no sight/bullet block)
   const WINDOW = 5; // barricade (blocks move, allows sight/bullets, breakable)
 
-  const SOFT_HP = 100;
-  const WINDOW_HP = 45;
+  const SOFT_HP = 60;
+  const WINDOW_HP = 40;
+
+  // ---------------------------------------------------------------------------
+  // Palette — a deliberately chosen tactical scheme with warm/cool room tints.
+  // ---------------------------------------------------------------------------
+  const COL = {
+    ext: "#1b2a1e", // exterior grass/dirt
+    extAlt: "#22331f",
+    floor: "#2b2f3a",
+    rubble: "#33291f",
+    reinf: "#4a5560",
+    reinfEdge: "#6b7885",
+    reinfRivet: "#9aa8b5",
+    wood: "#7a5230",
+    woodEdge: "#9c6a3c",
+    woodPlank: "#5e3d22",
+    window: "#3d5a66",
+    windowEdge: "#5f8b9c",
+    // room tints, blended onto the floor per quadrant
+    roomA: "#4a4275", // top-left — lounge (purple)
+    roomB: "#2f5a6b", // top-right — office (teal)
+    roomC: "#5c4636", // bottom-left — kitchen (warm)
+    roomD: "#5e343c", // bottom-right — strongroom (red)
+  };
 
   // ---------------------------------------------------------------------------
   // Operators
@@ -449,12 +480,14 @@ kbd {
       name: "Sledge",
       role: "Breacher",
       color: "#f2b134",
+      vest: "#4a3a1a",
       hp: 130,
       speed: 145,
-      blurb: "Tanky. Breaching hammer smashes adjacent soft walls instantly.",
+      blurb:
+        "Tanky. Breaching hammer smashes soft walls in a wide arc instantly.",
       gadget: "hammer",
       gadgetLabel: "Breach Hammer",
-      gadgetUses: 6,
+      gadgetUses: 8,
       weapon: {
         name: "Shotgun",
         pellets: 6,
@@ -470,10 +503,10 @@ kbd {
       name: "Ash",
       role: "Assault",
       color: "#e5533c",
+      vest: "#4a1f18",
       hp: 100,
       speed: 185,
-      blurb:
-        "Fast and aggressive. Breaching rounds destroy soft walls at range.",
+      blurb: "Fast and aggressive. Breaching rounds destroy walls at range.",
       gadget: "grenade",
       gadgetLabel: "Breach Rounds",
       gadgetUses: 3,
@@ -492,6 +525,7 @@ kbd {
       name: "Thermite",
       role: "Hard Breacher",
       color: "#48c0e8",
+      vest: "#173a45",
       hp: 105,
       speed: 155,
       blurb:
@@ -514,6 +548,7 @@ kbd {
       name: "Montagne",
       role: "Shield",
       color: "#6ad06a",
+      vest: "#1d4a1d",
       hp: 120,
       speed: 135,
       blurb: "Extendable shield blocks frontal fire. Hold gadget to guard.",
@@ -597,6 +632,8 @@ kbd {
         blip(70, 0.35, "sawtooth", 0.09);
         blip(140, 0.2, "square", 0.05);
       },
+      melee: () => blip(rand(80, 120), 0.14, "square", 0.07),
+      plant: () => blip(520, 0.06, "sine", 0.04),
       reload: () => blip(320, 0.05, "sine", 0.03),
       win: () => {
         blip(440, 0.15, "sine", 0.06);
@@ -647,13 +684,13 @@ kbd {
     grid[7][bx1] = WINDOW;
     grid[16][bx1] = WINDOW;
 
-    // Interior vertical soft divider with two door gaps
+    // Interior vertical wooden divider with two door gaps
     const vx = 18;
     for (let y = by0 + 1; y < by1; y++) grid[y][vx] = SOFT;
     grid[by0 + 3][vx] = FLOOR;
     grid[by0 + 12][vx] = FLOOR;
 
-    // Interior horizontal soft divider with two door gaps
+    // Interior horizontal wooden divider with two door gaps
     const hy = 11;
     for (let x = bx0 + 1; x < bx1; x++)
       if (grid[hy][x] === FLOOR) grid[hy][x] = SOFT;
@@ -661,7 +698,6 @@ kbd {
     grid[hy][25] = FLOOR;
 
     // A reinforced strongroom (only Thermite can breach the reinforced sides).
-    // Leave one soft-wall door so defenders/other operators can still enter.
     const rx0 = 24,
       ry0 = 14,
       rx1 = 29,
@@ -674,9 +710,9 @@ kbd {
       grid[y][rx0] = REINF;
       grid[y][rx1] = REINF;
     }
-    grid[ry1][rx0 + 2] = SOFT; // soft doorway into the strongroom
+    grid[ry1][rx0 + 2] = SOFT; // wooden doorway into the strongroom
 
-    // Candidate interior floor tiles for spawns/objectives
+    // Candidate interior floor tiles for spawns/objectives/props
     const floors = [];
     for (let y = by0 + 1; y < by1; y++)
       for (let x = bx0 + 1; x < bx1; x++)
@@ -690,18 +726,18 @@ kbd {
     // Player spawns outside, approaching from the left.
     const playerSpawn = { x: 2 * TILE + TILE / 2, y: (ROWS / 2) * TILE };
 
-    // One objective inside the reinforced strongroom, one elsewhere.
-    const objectives = [];
-    objectives.push(centerPx({ x: 26, y: 16 }));
+    // Two bomb sites: one in the reinforced strongroom, one in the top-right office.
+    const objectives = [
+      { ...centerPx({ x: 26, y: 16 }), label: "A" },
+      { ...centerPx({ x: 25, y: 6 }), label: "B" },
+    ];
+
+    // Enemy spawns: interior tiles reasonably far from the player entrance.
     const farFloors = floors.filter(
       (t) =>
         dist2(t.x * TILE, t.y * TILE, playerSpawn.x, playerSpawn.y) >
-        (14 * TILE) ** 2,
+        (13 * TILE) ** 2,
     );
-    const obj2 = farFloors[Math.floor(Math.random() * farFloors.length)];
-    objectives.push(centerPx(obj2));
-
-    // Enemy spawns: interior tiles reasonably far from the player entrance.
     const enemySpawns = [];
     const shuffled = farFloors.slice().sort(() => Math.random() - 0.5);
     for (let i = 0; i < shuffled.length && enemySpawns.length < 5; i++) {
@@ -713,7 +749,60 @@ kbd {
       }
     }
 
-    return { grid, playerSpawn, enemySpawns, objectives };
+    // Cover props — crates (destructible), tables & lockers (solid), barrels.
+    const props = [];
+    const propTiles = [
+      { x: 9, y: 6, kind: "crate" },
+      { x: 10, y: 6, kind: "crate" },
+      { x: 14, y: 8, kind: "table" },
+      { x: 8, y: 14, kind: "locker" },
+      { x: 11, y: 16, kind: "crate" },
+      { x: 15, y: 5, kind: "barrel" },
+      { x: 22, y: 8, kind: "table" },
+      { x: 27, y: 5, kind: "crate" },
+      { x: 21, y: 15, kind: "crate" },
+      { x: 26, y: 17, kind: "barrel" },
+      { x: 13, y: 13, kind: "table" },
+      { x: 23, y: 12, kind: "locker" },
+    ];
+    const occupied = (tx, ty) =>
+      objectives.some(
+        (o) => Math.floor(o.x / TILE) === tx && Math.floor(o.y / TILE) === ty,
+      ) ||
+      enemySpawns.some(
+        (e) => Math.floor(e.x / TILE) === tx && Math.floor(e.y / TILE) === ty,
+      );
+    for (const p of propTiles) {
+      if (grid[p.y] && grid[p.y][p.x] === FLOOR && !occupied(p.x, p.y)) {
+        const cx = p.x * TILE + TILE / 2,
+          cy = p.y * TILE + TILE / 2;
+        const kind = p.kind;
+        const half =
+          kind === "barrel"
+            ? TILE * 0.32
+            : kind === "table"
+              ? TILE * 0.42
+              : TILE * 0.38;
+        props.push({
+          x: cx,
+          y: cy,
+          hw: half,
+          hh: half,
+          kind,
+          hp: kind === "crate" ? 45 : Infinity,
+          round: kind === "barrel",
+          dead: false,
+        });
+      }
+    }
+
+    return { grid, playerSpawn, enemySpawns, objectives, props, vx, hy };
+  }
+
+  // Room tint by quadrant relative to the interior dividers.
+  function roomTint(tx, ty, vx, hy) {
+    if (ty < hy) return tx < vx ? COL.roomA : COL.roomB;
+    return tx < vx ? COL.roomC : COL.roomD;
   }
 
   // ---------------------------------------------------------------------------
@@ -761,12 +850,12 @@ kbd {
       this.radius = TILE * 0.34;
       this.angle = rand(0, Math.PI * 2);
       this.speed = 95;
-      this.state = "patrol"; // patrol | alert | engage
-      this.target = null; // last known player pos
+      this.state = "patrol";
+      this.target = null;
       this.fireCd = rand(300, 900);
       this.alertTimer = 0;
-      this.wander = { x, y, t: 0 };
-      this.revealTimer = 0; // stays visible briefly after last seen
+      this.wander = { x, y, t: 0, a: 0 };
+      this.revealTimer = 0;
       this.muzzle = 0;
     }
   }
@@ -786,12 +875,14 @@ kbd {
     reset() {
       const map = generateMap();
       this.grid = map.grid;
+      this.vx = map.vx;
+      this.hy = map.hy;
+      this.props = map.props;
       this.objectives = map.objectives.map((o) => ({
         ...o,
         radius: TILE * 0.5,
-        defused: false,
       }));
-      this.softHp = {}; // "x,y" -> remaining hp for SOFT/WINDOW tiles
+      this.softHp = {};
 
       const op = this.op;
       this.player = {
@@ -809,21 +900,28 @@ kbd {
         fireReady: 0,
         gadgetUses: op.gadgetUses,
         shieldUp: false,
+        legPhase: 0,
       };
 
       this.enemies = map.enemySpawns.map((s) => new Enemy(s.x, s.y));
       this.bullets = [];
       this.particles = [];
-      this.floaters = []; // floating text
-      this.charges = []; // thermite/ash timed breaches
+      this.floaters = [];
+      this.charges = [];
 
-      this.time = 120; // seconds remaining
-      this.state = "playing"; // playing | won | lost
+      // Objective / defuser state
+      this.plantProgress = 0;
+      this.planted = false;
+      this.plantedSite = null;
+      this.armTimer = 20; // seconds to defend once armed
+
+      this.time = 150;
+      this.state = "playing";
       this.shake = 0;
-      this.defuseProgress = 0;
-      this.vis = null; // visibility grid, recomputed each frame
+      this.vis = null;
       this.msg = "";
       this.msgT = 0;
+      this.meleeCd = 0;
       this.last = performance.now();
     }
 
@@ -833,10 +931,15 @@ kbd {
       this.mouse = { x: W / 2, y: H / 2, down: false };
 
       this._kd = (e) => {
-        this.keys[e.key.toLowerCase()] = true;
-        if (["r", "e", " "].includes(e.key.toLowerCase())) e.preventDefault();
-        if (e.key.toLowerCase() === "r") this.startReload();
-        if (e.key.toLowerCase() === "e") this.useGadget();
+        const k = e.key.toLowerCase();
+        if (["r", "e", "f", " "].includes(k)) e.preventDefault();
+        if (!this.keys[k]) {
+          // edge-triggered actions
+          if (k === "r") this.startReload();
+          if (k === "e") this.useGadget();
+          if (k === "f") this.interactEdge();
+        }
+        this.keys[k] = true;
       };
       this._ku = (e) => {
         this.keys[e.key.toLowerCase()] = false;
@@ -886,7 +989,11 @@ kbd {
       this.softHp[key] -= dmg;
       if (this.softHp[key] <= 0) {
         this.grid[ty][tx] = RUBBLE;
-        this.spawnDebris(tx * TILE + TILE / 2, ty * TILE + TILE / 2, "#8a7a5a");
+        this.spawnDebris(
+          tx * TILE + TILE / 2,
+          ty * TILE + TILE / 2,
+          COL.woodEdge,
+        );
       }
     }
 
@@ -895,18 +1002,25 @@ kbd {
       const t = this.grid[ty][tx];
       if (t === SOFT || t === WINDOW) {
         this.grid[ty][tx] = RUBBLE;
-        this.spawnDebris(tx * TILE + TILE / 2, ty * TILE + TILE / 2, "#8a7a5a");
+        this.spawnDebris(
+          tx * TILE + TILE / 2,
+          ty * TILE + TILE / 2,
+          COL.woodEdge,
+        );
         return true;
       }
       return false;
     }
 
-    // Thermite can turn a REINF wall into rubble; others cannot.
     breachReinforced(tx, ty) {
       if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return false;
       if (this.grid[ty][tx] === REINF) {
         this.grid[ty][tx] = RUBBLE;
-        this.spawnDebris(tx * TILE + TILE / 2, ty * TILE + TILE / 2, "#c0c0c0");
+        this.spawnDebris(
+          tx * TILE + TILE / 2,
+          ty * TILE + TILE / 2,
+          COL.reinfRivet,
+        );
         return true;
       }
       return false;
@@ -946,10 +1060,9 @@ kbd {
           ),
         );
       }
-      this.spawnMuzzle(p.x, p.y, p.angle, this.op.color);
+      this.spawnMuzzle(p.x, p.y, p.angle, "#ffd25a");
       this.shake = Math.min(this.shake + (wpn.pellets > 1 ? 6 : 2.5), 12);
       Audio.shoot();
-      // Gunfire alerts nearby defenders.
       for (const e of this.enemies) {
         if (
           dist2(e.x, e.y, p.x, p.y) < (9 * TILE) ** 2 &&
@@ -962,12 +1075,64 @@ kbd {
       }
     }
 
+    // The tile directly in front of the player (for melee / gadgets).
+    frontTile() {
+      const p = this.player;
+      const fx = p.x + Math.cos(p.angle) * TILE * 0.8;
+      const fy = p.y + Math.sin(p.angle) * TILE * 0.8;
+      return { tx: Math.floor(fx / TILE), ty: Math.floor(fy / TILE), fx, fy };
+    }
+
+    // F pressed: plant (if on a site) is handled while held in update; otherwise
+    // this edge does a melee breach of the wall / crate in front.
+    interactEdge() {
+      if (this.state !== "playing") return;
+      if (this.onObjective()) return; // planting handled in update while F held
+      this.meleeBreach();
+    }
+
+    meleeBreach() {
+      if (this.meleeCd > 0) return;
+      const p = this.player;
+      const { tx, ty, fx, fy } = this.frontTile();
+      this.meleeCd = 0.35;
+      this.spawnMuzzle(p.x, p.y, p.angle, "#cfd6dd"); // swing arc puff
+      Audio.melee();
+
+      // Break a crate prop in front?
+      for (const pr of this.props) {
+        if (pr.dead || pr.kind !== "crate") continue;
+        if (
+          Math.abs(pr.x - fx) < pr.hw + 8 &&
+          Math.abs(pr.y - fy) < pr.hh + 8
+        ) {
+          pr.dead = true;
+          this.spawnDebris(pr.x, pr.y, COL.woodEdge);
+          this.shake = 6;
+          this.flash("Crate smashed");
+          return;
+        }
+      }
+
+      const t = this.grid[ty] && this.grid[ty][tx];
+      if (t === SOFT || t === WINDOW) {
+        this.breachTile(tx, ty);
+        this.shake = 7;
+        Audio.breach();
+        this.flash("Wooden wall breached!");
+      } else if (t === REINF) {
+        this.flash("Reinforced — need Thermite's charge");
+      } else {
+        this.flash("Nothing to breach here");
+      }
+    }
+
     useGadget() {
+      if (this.state !== "playing") return;
       const p = this.player;
       const g = this.op.gadget;
 
       if (g === "shield") {
-        // toggled/held elsewhere; E flips lock
         p.shieldUp = !p.shieldUp;
         this.flash(p.shieldUp ? "Shield UP" : "Shield DOWN");
         return;
@@ -978,23 +1143,45 @@ kbd {
         return;
       }
 
-      const fx = p.x + Math.cos(p.angle) * TILE;
-      const fy = p.y + Math.sin(p.angle) * TILE;
-      const tx = Math.floor(fx / TILE),
-        ty = Math.floor(fy / TILE);
+      const { tx, ty } = this.frontTile();
 
       if (g === "hammer") {
-        // Instant melee breach of the adjacent soft wall / window.
-        if (this.breachTile(tx, ty)) {
+        // Sledge smashes the front tile plus its two neighbours (wide arc).
+        const perp = p.angle + Math.PI / 2;
+        const spots = [
+          { tx, ty },
+          {
+            tx: Math.floor(
+              (p.x + Math.cos(p.angle) * TILE * 0.8 + Math.cos(perp) * TILE) /
+                TILE,
+            ),
+            ty: Math.floor(
+              (p.y + Math.sin(p.angle) * TILE * 0.8 + Math.sin(perp) * TILE) /
+                TILE,
+            ),
+          },
+          {
+            tx: Math.floor(
+              (p.x + Math.cos(p.angle) * TILE * 0.8 - Math.cos(perp) * TILE) /
+                TILE,
+            ),
+            ty: Math.floor(
+              (p.y + Math.sin(p.angle) * TILE * 0.8 - Math.sin(perp) * TILE) /
+                TILE,
+            ),
+          },
+        ];
+        let any = false;
+        for (const s of spots) if (this.breachTile(s.tx, s.ty)) any = true;
+        if (any) {
           p.gadgetUses--;
           this.shake = 10;
           Audio.breach();
-          this.flash("SMASH! Wall breached");
+          this.flash("SMASH! Walls breached");
         } else {
-          this.flash("No soft wall in front");
+          this.flash("No wooden wall in front");
         }
       } else if (g === "charge") {
-        // Thermite: place an exothermic charge that burns through ANY wall.
         const t = this.grid[ty][tx];
         if (t === REINF || t === SOFT || t === WINDOW) {
           p.gadgetUses--;
@@ -1004,7 +1191,6 @@ kbd {
           this.flash("Aim at a wall to place charge");
         }
       } else if (g === "grenade") {
-        // Ash: fire a breaching round that destroys soft walls in a small radius.
         p.gadgetUses--;
         this.charges.push({
           projectile: true,
@@ -1036,7 +1222,7 @@ kbd {
           vy: Math.sin(a) * s,
           life: rand(0.05, 0.16),
           max: 0.16,
-          color: "#ffd25a",
+          color,
           r: rand(1.5, 3),
         });
       }
@@ -1078,20 +1264,16 @@ kbd {
 
     // ----- movement -----------------------------------------------------------
     moveCircle(ent, nx, ny) {
-      // Axis-separated collision against solid tiles.
       const r = ent.radius;
-      // X axis
       let tx = ent.x;
-      if (!this.solidAround(nx, ent.y, r)) tx = nx;
-      // Y axis
+      if (!this.solidAt(nx, ent.y, r)) tx = nx;
       let ty = ent.y;
-      if (!this.solidAround(tx, ny, r)) ty = ny;
+      if (!this.solidAt(tx, ny, r)) ty = ny;
       ent.x = clamp(tx, r, W - r);
       ent.y = clamp(ty, r, H - r);
     }
 
-    solidAround(px, py, r) {
-      // Sample the four cardinal edges of the entity circle.
+    solidAt(px, py, r) {
       const pts = [
         [px - r, py],
         [px + r, py],
@@ -1100,18 +1282,33 @@ kbd {
       ];
       for (const [x, y] of pts)
         if (blocksMove(tileAt(this.grid, x, y))) return true;
+      // props (circle vs rect)
+      for (const pr of this.props) {
+        if (pr.dead) continue;
+        const cx = clamp(px, pr.x - pr.hw, pr.x + pr.hw);
+        const cy = clamp(py, pr.y - pr.hh, pr.y + pr.hh);
+        if (dist2(px, py, cx, cy) < r * r) return true;
+      }
       return false;
+    }
+
+    onObjective() {
+      const p = this.player;
+      for (const o of this.objectives)
+        if (dist2(p.x, p.y, o.x, o.y) < (TILE * 0.85) ** 2) return o;
+      return null;
     }
 
     // ----- update -------------------------------------------------------------
     update(dt) {
       if (this.state !== "playing") return;
       this.time -= dt;
-      if (this.time <= 0) {
+      if (this.time <= 0 && !this.planted) {
         this.time = 0;
-        return this.end(false, "Time's up — objective held.");
+        return this.end(false, "Time ran out before you armed the defuser.");
       }
       if (this.msgT > 0) this.msgT -= dt;
+      if (this.meleeCd > 0) this.meleeCd -= dt;
       if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 40);
 
       this.updatePlayer(dt);
@@ -1119,10 +1316,10 @@ kbd {
       this.updateBullets(dt);
       this.updateCharges(dt);
       this.updateParticles(dt);
-      this.updateObjectives(dt);
+      this.updateObjective(dt);
       this.computeVisibility();
 
-      if (this.enemies.length === 0)
+      if (this.enemies.length === 0 && !this.planted)
         this.end(true, "All defenders eliminated.");
       if (this.player.hp <= 0) this.end(false, "You were killed.");
     }
@@ -1130,8 +1327,6 @@ kbd {
     updatePlayer(dt) {
       const p = this.player;
       p.angle = Math.atan2(this.mouse.y - p.y, this.mouse.x - p.x);
-
-      // Shield operator: holding right context — shield lock via E, held slows.
       const shielded = p.shieldUp;
       let sp = p.speed * (shielded ? 0.55 : 1);
 
@@ -1144,6 +1339,7 @@ kbd {
       if (dx || dy) {
         const l = Math.hypot(dx, dy);
         this.moveCircle(p, p.x + (dx / l) * sp * dt, p.y + (dy / l) * sp * dt);
+        p.legPhase += dt * 12;
       }
 
       if (p.reloading && performance.now() >= p.reloadEnd) {
@@ -1171,7 +1367,6 @@ kbd {
 
         if (e.state === "engage") {
           e.angle = angLerp(e.angle, Math.atan2(p.y - e.y, p.x - e.x), 0.15);
-          // Keep at a fighting distance; strafe a little.
           const d = Math.hypot(p.x - e.x, p.y - e.y);
           const want = 5 * TILE;
           let mvx = 0,
@@ -1179,7 +1374,6 @@ kbd {
           const toward = d > want ? 1 : d < want - TILE ? -1 : 0;
           mvx += Math.cos(e.angle) * toward;
           mvy += Math.sin(e.angle) * toward;
-          // strafe perpendicular
           const strafe = Math.sin(performance.now() / 500 + e.x) * 0.6;
           mvx += Math.cos(e.angle + Math.PI / 2) * strafe;
           mvy += Math.sin(e.angle + Math.PI / 2) * strafe;
@@ -1190,7 +1384,6 @@ kbd {
             e.y + (mvy / l) * e.speed * dt,
           );
 
-          // Fire
           e.fireCd -= dt * 1000;
           if (e.fireCd <= 0 && canSee) {
             e.fireCd = rand(650, 1100);
@@ -1207,7 +1400,6 @@ kbd {
             if (e.alertTimer <= 0) e.state = "alert";
           }
         } else if (e.state === "alert" && e.target) {
-          // Move toward last known position, then resume patrol.
           const d = Math.hypot(e.target.x - e.x, e.target.y - e.y);
           if (d > TILE) {
             const a = Math.atan2(e.target.y - e.y, e.target.x - e.x);
@@ -1222,13 +1414,12 @@ kbd {
             e.target = null;
           }
         } else {
-          // Patrol: lazy random wander around spawn.
           e.wander.t -= dt;
           if (e.wander.t <= 0) {
             e.wander.t = rand(1.5, 3.5);
             e.wander.a = rand(0, Math.PI * 2);
           }
-          const a = e.wander.a || 0;
+          const a = e.wander.a;
           e.angle = angLerp(e.angle, a, 0.05);
           this.moveCircle(
             e,
@@ -1238,6 +1429,14 @@ kbd {
         }
         if (e.muzzle > 0) e.muzzle -= dt;
       }
+    }
+
+    hitsProp(x, y) {
+      for (const pr of this.props) {
+        if (pr.dead) continue;
+        if (Math.abs(x - pr.x) < pr.hw && Math.abs(y - pr.y) < pr.hh) return pr;
+      }
+      return null;
     }
 
     updateBullets(dt) {
@@ -1258,14 +1457,30 @@ kbd {
             ty = Math.floor(b.y / TILE);
           if (t === REINF) {
             b.dead = true;
-            this.spawnDebris(b.x, b.y, "#9aa0a6");
+            this.spawnDebris(b.x, b.y, COL.reinfEdge);
           } else if (t === SOFT || t === WINDOW) {
             this.damageTile(tx, ty, b.damage * 0.9);
             b.dead = true;
           }
           if (b.dead) break;
 
-          // Entity hits
+          // props
+          const pr = this.hitsProp(b.x, b.y);
+          if (pr) {
+            b.dead = true;
+            if (pr.kind === "crate") {
+              pr.hp -= b.damage;
+              this.spawnDebris(b.x, b.y, COL.woodEdge);
+              if (pr.hp <= 0) {
+                pr.dead = true;
+                this.spawnDebris(pr.x, pr.y, COL.woodEdge);
+              }
+            } else {
+              this.spawnDebris(b.x, b.y, "#8892a0");
+            }
+            break;
+          }
+
           if (b.friendly) {
             for (const e of this.enemies) {
               if (dist2(b.x, b.y, e.x, e.y) < e.radius * e.radius) {
@@ -1287,7 +1502,6 @@ kbd {
               }
             }
           } else {
-            // Enemy bullet vs player (shield blocks frontal fire).
             if (dist2(b.x, b.y, p.x, p.y) < p.radius * p.radius) {
               if (p.shieldUp) {
                 const toB = Math.atan2(b.y - p.y, b.x - p.x);
@@ -1295,7 +1509,7 @@ kbd {
                   ((toB - p.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI,
                 );
                 if (diff < 1.1) {
-                  b.dead = true; // blocked by shield arc
+                  b.dead = true;
                   this.spawnDebris(b.x, b.y, "#6ad06a");
                   break;
                 }
@@ -1325,7 +1539,6 @@ kbd {
             const tx = Math.floor(c.x / TILE),
               ty = Math.floor(c.y / TILE);
             if (t === SOFT || t === WINDOW) {
-              // Destroy a small cluster of soft walls.
               this.breachTile(tx, ty);
               this.breachTile(tx, ty - 1);
               this.breachTile(tx, ty + 1);
@@ -1341,7 +1554,7 @@ kbd {
               c.y > H
             ) {
               c.done = true;
-              this.spawnDebris(c.x, c.y, "#c0c0c0");
+              this.spawnDebris(c.x, c.y, COL.reinfEdge);
             }
           }
           c.life -= dt;
@@ -1350,9 +1563,9 @@ kbd {
           c.t -= dt;
           if (c.t <= 0 && !c.done) {
             c.done = true;
-            let ok;
-            if (c.reinforced) ok = this.breachReinforced(c.tx, c.ty);
-            else ok = this.breachTile(c.tx, c.ty);
+            let ok = c.reinforced
+              ? this.breachReinforced(c.tx, c.ty)
+              : this.breachTile(c.tx, c.ty);
             if (ok) {
               this.shake = 12;
               Audio.breach();
@@ -1382,31 +1595,36 @@ kbd {
       this.floaters = this.floaters.filter((f) => f.t > 0);
     }
 
-    updateObjectives(dt) {
+    updateObjective(dt) {
       const p = this.player;
-      let onObj = null;
-      for (const o of this.objectives) {
-        if (!o.defused && dist2(p.x, p.y, o.x, o.y) < (TILE * 0.9) ** 2)
-          onObj = o;
+      if (this.planted) {
+        this.armTimer -= dt;
+        if (this.armTimer <= 0)
+          this.end(true, "Defuser detonated — site destroyed. You win!");
+        return;
       }
-      if (onObj) {
-        this.defuseProgress += dt;
-        if (this.defuseProgress >= 4) {
-          onObj.defused = true;
-          this.defuseProgress = 0;
-          this.flash("Objective secured!");
-          if (this.objectives.every((o) => o.defused))
-            this.end(true, "All objectives secured.");
+      const site = this.onObjective();
+      this._onSite = site;
+      if (site && this.keys["f"]) {
+        this.plantProgress += dt;
+        if (
+          Math.floor(this.plantProgress * 4) !==
+          Math.floor((this.plantProgress - dt) * 4)
+        )
+          Audio.plant();
+        if (this.plantProgress >= 3) {
+          this.planted = true;
+          this.plantedSite = site;
+          this.flash("DEFUSER ARMED — defend it!");
         }
       } else {
-        this.defuseProgress = Math.max(0, this.defuseProgress - dt * 2);
+        this.plantProgress = Math.max(0, this.plantProgress - dt * 1.5);
       }
-      this._onObj = onObj;
     }
 
     computeVisibility() {
       const p = this.player;
-      const R = 10; // tile view radius
+      const R = 10;
       const vis = {};
       const ptx = Math.floor(p.x / TILE),
         pty = Math.floor(p.y / TILE);
@@ -1448,11 +1666,11 @@ kbd {
         );
       }
 
-      // Background
       ctx.fillStyle = "#0d0f12";
       ctx.fillRect(-20, -20, W + 40, H + 40);
 
       this.renderTiles(ctx);
+      this.renderProps(ctx);
       this.renderObjectives(ctx);
       this.renderCharges(ctx);
       this.renderEnemies(ctx);
@@ -1461,6 +1679,7 @@ kbd {
       this.renderParticles(ctx);
       this.renderFog(ctx);
       this.renderFloaters(ctx);
+      this.renderWaypoint(ctx);
 
       ctx.restore();
       this.renderHUD(ctx);
@@ -1472,98 +1691,181 @@ kbd {
           const t = this.grid[ty][tx];
           const x = tx * TILE,
             y = ty * TILE;
-          let fill = null,
-            stroke = null;
-          if (t === EXT) fill = "#15181d";
-          else if (t === FLOOR) fill = "#22262e";
-          else if (t === RUBBLE) fill = "#2a2620";
-          else if (t === REINF) {
-            fill = "#3a4048";
-            stroke = "#565f6b";
-          } else if (t === SOFT) {
-            fill = "#5a4a34";
-            stroke = "#6f5a3f";
-          } else if (t === WINDOW) {
-            fill = "#334a55";
-            stroke = "#4a6b78";
-          }
-          if (fill) {
-            ctx.fillStyle = fill;
+
+          if (t === EXT) {
+            ctx.fillStyle = (tx + ty) % 2 ? COL.ext : COL.extAlt;
             ctx.fillRect(x, y, TILE, TILE);
-          }
-          if (t === FLOOR || t === EXT || t === RUBBLE) {
-            ctx.strokeStyle = "rgba(255,255,255,0.03)";
-            ctx.strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
-          }
-          if (stroke) {
-            ctx.strokeStyle = stroke;
+          } else if (t === FLOOR || t === RUBBLE) {
+            // room-tinted floor with a checker sheen
+            const base =
+              t === RUBBLE ? COL.rubble : roomTint(tx, ty, this.vx, this.hy);
+            ctx.fillStyle = base;
+            ctx.fillRect(x, y, TILE, TILE);
+            ctx.fillStyle =
+              (tx + ty) % 2 ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.10)";
+            ctx.fillRect(x, y, TILE, TILE);
+            if (t === RUBBLE) {
+              ctx.fillStyle = "rgba(0,0,0,0.35)";
+              ctx.fillRect(x + 5, y + 6, 5, 4);
+              ctx.fillRect(x + 15, y + 13, 6, 5);
+            }
+          } else if (t === REINF) {
+            ctx.fillStyle = COL.reinf;
+            ctx.fillRect(x, y, TILE, TILE);
+            ctx.strokeStyle = COL.reinfEdge;
             ctx.lineWidth = 2;
-            ctx.strokeRect(x + 1, y + 1, TILE - 2, TILE - 2);
-            if (t === REINF) {
-              // reinforced hatch marks
-              ctx.strokeStyle = "rgba(120,140,160,0.4)";
-              ctx.lineWidth = 1;
+            ctx.strokeRect(x + 1.5, y + 1.5, TILE - 3, TILE - 3);
+            ctx.fillStyle = COL.reinfRivet;
+            for (const [rx, ry] of [
+              [5, 5],
+              [TILE - 5, 5],
+              [5, TILE - 5],
+              [TILE - 5, TILE - 5],
+            ]) {
               ctx.beginPath();
-              ctx.moveTo(x + 4, y + TILE / 2);
-              ctx.lineTo(x + TILE - 4, y + TILE / 2);
-              ctx.moveTo(x + TILE / 2, y + 4);
-              ctx.lineTo(x + TILE / 2, y + TILE - 4);
-              ctx.stroke();
+              ctx.arc(x + rx, y + ry, 1.6, 0, Math.PI * 2);
+              ctx.fill();
             }
-            // soft-wall damage cracks
-            if (
-              (t === SOFT || t === WINDOW) &&
-              this.softHp[tx + "," + ty] !== undefined
-            ) {
-              const max = t === SOFT ? SOFT_HP : WINDOW_HP;
-              const frac = this.softHp[tx + "," + ty] / max;
-              ctx.strokeStyle = "rgba(0,0,0," + 0.6 * (1 - frac) + ")";
-              ctx.lineWidth = 1.5;
-              ctx.beginPath();
-              ctx.moveTo(x + 3, y + 3);
-              ctx.lineTo(x + TILE - 5, y + TILE - 7);
-              ctx.moveTo(x + TILE - 4, y + 5);
-              ctx.lineTo(x + 6, y + TILE - 4);
-              ctx.stroke();
-            }
+          } else if (t === SOFT) {
+            ctx.fillStyle = COL.wood;
+            ctx.fillRect(x, y, TILE, TILE);
+            // plank lines
+            ctx.strokeStyle = COL.woodPlank;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x, y + TILE / 3);
+            ctx.lineTo(x + TILE, y + TILE / 3);
+            ctx.moveTo(x, y + (2 * TILE) / 3);
+            ctx.lineTo(x + TILE, y + (2 * TILE) / 3);
+            ctx.stroke();
+            ctx.strokeStyle = COL.woodEdge;
+            ctx.strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
+            this.renderCracks(ctx, tx, ty, x, y, SOFT_HP);
+          } else if (t === WINDOW) {
+            ctx.fillStyle = COL.window;
+            ctx.fillRect(x, y, TILE, TILE);
+            ctx.strokeStyle = COL.windowEdge;
+            ctx.lineWidth = 2;
+            // criss-cross barricade planks
+            ctx.beginPath();
+            ctx.moveTo(x + 2, y + 5);
+            ctx.lineTo(x + TILE - 2, y + 9);
+            ctx.moveTo(x + 2, y + TILE - 9);
+            ctx.lineTo(x + TILE - 2, y + TILE - 5);
+            ctx.stroke();
+            this.renderCracks(ctx, tx, ty, x, y, WINDOW_HP);
           }
+        }
+      }
+    }
+
+    renderCracks(ctx, tx, ty, x, y, max) {
+      const hp = this.softHp[tx + "," + ty];
+      if (hp === undefined) return;
+      const frac = hp / max;
+      ctx.strokeStyle = "rgba(0,0,0," + 0.6 * (1 - frac) + ")";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x + 3, y + 3);
+      ctx.lineTo(x + TILE - 5, y + TILE - 7);
+      ctx.moveTo(x + TILE - 4, y + 5);
+      ctx.lineTo(x + 6, y + TILE - 4);
+      ctx.stroke();
+    }
+
+    renderProps(ctx) {
+      for (const pr of this.props) {
+        if (pr.dead) continue;
+        if (!this.isVisible(pr.x, pr.y)) continue;
+        const x = pr.x - pr.hw,
+          y = pr.y - pr.hh,
+          w = pr.hw * 2,
+          h = pr.hh * 2;
+        // shadow
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.fillRect(x + 2, y + 3, w, h);
+        if (pr.kind === "crate") {
+          ctx.fillStyle = "#8a5a2e";
+          ctx.fillRect(x, y, w, h);
+          ctx.strokeStyle = "#5e3d1f";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + w, y + h);
+          ctx.moveTo(x + w, y);
+          ctx.lineTo(x, y + h);
+          ctx.stroke();
+        } else if (pr.kind === "table") {
+          ctx.fillStyle = "#5a4636";
+          ctx.fillRect(x, y, w, h);
+          ctx.strokeStyle = "#3a2c22";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+          ctx.fillStyle = "#6f5844";
+          ctx.fillRect(x + 3, y + 3, w - 6, h - 6);
+        } else if (pr.kind === "locker") {
+          ctx.fillStyle = "#5b6470";
+          ctx.fillRect(x, y, w, h);
+          ctx.strokeStyle = "#39414a";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+          ctx.beginPath();
+          ctx.moveTo(pr.x, y + 2);
+          ctx.lineTo(pr.x, y + h - 2);
+          ctx.stroke();
+        } else if (pr.kind === "barrel") {
+          ctx.fillStyle = "#b8442e";
+          ctx.beginPath();
+          ctx.arc(pr.x, pr.y, pr.hw, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#7a2a1c";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.strokeStyle = "#e0a090";
+          ctx.beginPath();
+          ctx.arc(pr.x, pr.y, pr.hw * 0.5, 0, Math.PI * 2);
+          ctx.stroke();
         }
       }
     }
 
     renderObjectives(ctx) {
       for (const o of this.objectives) {
-        if (!this.isVisible(o.x, o.y)) continue;
+        // Bomb sites are always faintly visible (beacon), brighter when in LOS.
+        const seen = this.isVisible(o.x, o.y);
+        const armed = this.planted && this.plantedSite === o;
         const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 300);
         ctx.save();
         ctx.translate(o.x, o.y);
-        if (o.defused) {
-          ctx.strokeStyle = "#6ad06a";
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.arc(0, 0, TILE * 0.45, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.fillStyle = "#6ad06a";
-          ctx.font = "16px sans-serif";
-          ctx.textAlign = "center";
-          ctx.fillText("✓", 0, 5);
-        } else {
-          ctx.fillStyle = "rgba(229,83,60," + (0.25 + 0.25 * pulse) + ")";
-          ctx.beginPath();
-          ctx.arc(0, 0, TILE * (0.5 + 0.15 * pulse), 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = "#e5533c";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(0, 0, TILE * 0.4, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.fillStyle = "#ffd25a";
-          ctx.font = "bold 13px monospace";
-          ctx.textAlign = "center";
-          ctx.fillText("DEF", 0, 4);
+        ctx.globalAlpha = seen ? 1 : 0.5;
+        const c = armed ? "#ff3b30" : "#ffd25a";
+        ctx.fillStyle =
+          "rgba(255,210,90," + (armed ? 0.15 : 0.12) * (1 + pulse) + ")";
+        ctx.beginPath();
+        ctx.arc(0, 0, TILE * (0.5 + 0.18 * pulse), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = c;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, TILE * 0.42, 0, Math.PI * 2);
+        ctx.stroke();
+        // corner ticks
+        ctx.beginPath();
+        for (let a = 0; a < 4; a++) {
+          const ang = (a * Math.PI) / 2 + Math.PI / 4;
+          ctx.moveTo(Math.cos(ang) * TILE * 0.42, Math.sin(ang) * TILE * 0.42);
+          ctx.lineTo(Math.cos(ang) * TILE * 0.54, Math.sin(ang) * TILE * 0.54);
         }
+        ctx.stroke();
+        ctx.fillStyle = c;
+        ctx.font = "bold 15px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(armed ? "⏱" : o.label, 0, 1);
         ctx.restore();
       }
+      ctx.globalAlpha = 1;
     }
 
     renderCharges(ctx) {
@@ -1585,21 +1887,85 @@ kbd {
       }
     }
 
-    drawFighter(ctx, x, y, angle, color, radius) {
+    // Detailed top-down operator sprite.
+    drawFighter(
+      ctx,
+      x,
+      y,
+      angle,
+      bodyColor,
+      vestColor,
+      radius,
+      moving,
+      legPhase,
+    ) {
       ctx.save();
       ctx.translate(x, y);
+      // shadow
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      ctx.beginPath();
+      ctx.ellipse(
+        0,
+        radius * 0.5,
+        radius * 1.05,
+        radius * 0.7,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
       ctx.rotate(angle);
-      // body
-      ctx.fillStyle = color;
+
+      // legs (subtle walk bob)
+      const legOff = moving ? Math.sin(legPhase || 0) * radius * 0.35 : 0;
+      ctx.fillStyle = "#2a2d33";
+      ctx.fillRect(
+        -radius * 0.15,
+        -radius * 0.7 + legOff,
+        radius * 0.3,
+        radius * 0.5,
+      );
+      ctx.fillRect(
+        -radius * 0.15,
+        radius * 0.2 - legOff,
+        radius * 0.3,
+        radius * 0.5,
+      );
+
+      // body / vest
+      ctx.fillStyle = vestColor;
       ctx.beginPath();
       ctx.arc(0, 0, radius, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,0.4)";
+      ctx.fillStyle = bodyColor;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.72, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.45)";
       ctx.lineWidth = 2;
       ctx.stroke();
-      // gun barrel
-      ctx.fillStyle = "#111";
-      ctx.fillRect(radius - 2, -3, radius * 0.9, 6);
+
+      // arms holding the gun
+      ctx.fillStyle = vestColor;
+      ctx.fillRect(radius * 0.2, -radius * 0.55, radius * 0.5, radius * 0.3);
+      ctx.fillRect(radius * 0.2, radius * 0.25, radius * 0.5, radius * 0.3);
+
+      // gun
+      ctx.fillStyle = "#15171b";
+      ctx.fillRect(radius * 0.5, -radius * 0.14, radius * 1.15, radius * 0.28);
+      ctx.fillStyle = "#2b2f36";
+      ctx.fillRect(radius * 0.5, -radius * 0.14, radius * 0.3, radius * 0.28);
+
+      // head
+      ctx.fillStyle = "#c9a27a";
+      ctx.beginPath();
+      ctx.arc(radius * 0.18, 0, radius * 0.34, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = bodyColor;
+      ctx.beginPath();
+      ctx.arc(radius * 0.05, 0, radius * 0.3, -Math.PI / 2, Math.PI / 2);
+      ctx.fill();
+
       ctx.restore();
     }
 
@@ -1607,31 +1973,40 @@ kbd {
       for (const e of this.enemies) {
         const shown = this.isVisible(e.x, e.y) || e.revealTimer > 0;
         if (!shown) continue;
-        this.drawFighter(ctx, e.x, e.y, e.angle, "#d64545", e.radius);
+        this.drawFighter(
+          ctx,
+          e.x,
+          e.y,
+          e.angle,
+          "#d64545",
+          "#3a1414",
+          e.radius,
+          true,
+          e.x + performance.now() / 120,
+        );
         if (e.muzzle > 0) {
           ctx.fillStyle = "#ffd25a";
           ctx.beginPath();
           ctx.arc(
-            e.x + Math.cos(e.angle) * 16,
-            e.y + Math.sin(e.angle) * 16,
+            e.x + Math.cos(e.angle) * 18,
+            e.y + Math.sin(e.angle) * 18,
             5,
             0,
             Math.PI * 2,
           );
           ctx.fill();
         }
-        // health pip
         const w = 22;
         ctx.fillStyle = "rgba(0,0,0,0.6)";
-        ctx.fillRect(e.x - w / 2, e.y - e.radius - 9, w, 4);
+        ctx.fillRect(e.x - w / 2, e.y - e.radius - 11, w, 4);
         ctx.fillStyle = "#e5533c";
-        ctx.fillRect(e.x - w / 2, e.y - e.radius - 9, w * (e.hp / 100), 4);
+        ctx.fillRect(e.x - w / 2, e.y - e.radius - 11, w * (e.hp / 100), 4);
       }
     }
 
     renderBullets(ctx) {
       for (const b of this.bullets) {
-        ctx.strokeStyle = b.friendly ? "#ffd25a" : "#ff6b5a";
+        ctx.strokeStyle = b.friendly ? "#ffe08a" : "#ff6b5a";
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(b.x, b.y);
@@ -1642,25 +2017,37 @@ kbd {
 
     renderPlayer(ctx) {
       const p = this.player;
-      this.drawFighter(ctx, p.x, p.y, p.angle, this.op.color, p.radius);
-      // aim line
-      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      const moving =
+        this.keys["w"] || this.keys["a"] || this.keys["s"] || this.keys["d"];
+      this.drawFighter(
+        ctx,
+        p.x,
+        p.y,
+        p.angle,
+        this.op.color,
+        this.op.vest,
+        p.radius,
+        moving,
+        p.legPhase,
+      );
+
+      ctx.strokeStyle = "rgba(255,255,255,0.16)";
       ctx.setLineDash([4, 6]);
       ctx.beginPath();
       ctx.moveTo(p.x, p.y);
-      ctx.lineTo(p.x + Math.cos(p.angle) * 60, p.y + Math.sin(p.angle) * 60);
+      ctx.lineTo(p.x + Math.cos(p.angle) * 70, p.y + Math.sin(p.angle) * 70);
       ctx.stroke();
       ctx.setLineDash([]);
-      // shield
+
       if (p.shieldUp) {
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.angle);
-        ctx.fillStyle = "rgba(106,208,106,0.35)";
+        ctx.fillStyle = "rgba(106,208,106,0.30)";
         ctx.strokeStyle = "#6ad06a";
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(p.radius + 3, 0, p.radius + 6, -1.1, 1.1);
+        ctx.arc(p.radius + 4, 0, p.radius + 8, -1.1, 1.1);
         ctx.stroke();
         ctx.restore();
       }
@@ -1689,41 +2076,83 @@ kbd {
     }
 
     renderFog(ctx) {
-      // Darken tiles the player cannot currently see.
       for (let ty = 0; ty < ROWS; ty++) {
         for (let tx = 0; tx < COLS; tx++) {
           if (!this.vis || !this.vis[tx + "," + ty]) {
-            ctx.fillStyle = "rgba(6,7,9,0.72)";
+            ctx.fillStyle = "rgba(6,7,9,0.55)";
             ctx.fillRect(tx * TILE, ty * TILE, TILE, TILE);
           }
         }
       }
     }
 
+    // A chevron near the player pointing toward the nearest un-armed bomb site.
+    renderWaypoint(ctx) {
+      if (this.planted) return;
+      const p = this.player;
+      let best = null,
+        bd = Infinity;
+      for (const o of this.objectives) {
+        const d = dist2(p.x, p.y, o.x, o.y);
+        if (d < bd) {
+          bd = d;
+          best = o;
+        }
+      }
+      if (!best) return;
+      const ang = Math.atan2(best.y - p.y, best.x - p.x);
+      const r = p.radius + 26;
+      const cx = p.x + Math.cos(ang) * r,
+        cy = p.y + Math.sin(ang) * r;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(ang);
+      ctx.fillStyle = "rgba(255,210,90,0.9)";
+      ctx.beginPath();
+      ctx.moveTo(8, 0);
+      ctx.lineTo(-4, -6);
+      ctx.lineTo(-4, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
     renderHUD(ctx) {
       const p = this.player;
-      // defuse progress ring
-      if (this._onObj && this.defuseProgress > 0) {
-        const frac = clamp(this.defuseProgress / 4, 0, 1);
+
+      // Plant prompt + progress when standing on a site.
+      if (this._onSite && !this.planted) {
+        const o = this._onSite;
+        const frac = clamp(this.plantProgress / 3, 0, 1);
         ctx.save();
-        ctx.translate(this._onObj.x, this._onObj.y - 30);
-        ctx.strokeStyle = "rgba(0,0,0,0.6)";
+        ctx.translate(o.x, o.y - 34);
+        ctx.strokeStyle = "rgba(0,0,0,0.7)";
         ctx.lineWidth = 5;
         ctx.beginPath();
-        ctx.arc(0, 0, 14, 0, Math.PI * 2);
+        ctx.arc(0, 0, 15, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.strokeStyle = "#6ad06a";
+        ctx.strokeStyle = "#ffd25a";
         ctx.beginPath();
-        ctx.arc(0, 0, 14, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
+        ctx.arc(0, 0, 15, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
         ctx.stroke();
         ctx.restore();
+        ctx.fillStyle = "rgba(0,0,0,0.7)";
+        ctx.fillRect(W / 2 - 160, H - 70, 320, 30);
+        ctx.fillStyle = "#ffd25a";
+        ctx.font = "bold 15px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(
+          frac > 0 ? "PLANTING… hold [F]" : "Hold [F] to plant the defuser",
+          W / 2,
+          H - 50,
+        );
       }
 
       // flash message
       if (this.msgT > 0 && this.msg) {
         ctx.globalAlpha = clamp(this.msgT, 0, 1);
         ctx.fillStyle = "rgba(0,0,0,0.6)";
-        ctx.fillRect(W / 2 - 150, 12, 300, 30);
+        ctx.fillRect(W / 2 - 160, 12, 320, 30);
         ctx.fillStyle = "#ffd25a";
         ctx.font = "bold 15px monospace";
         ctx.textAlign = "center";
@@ -1731,7 +2160,7 @@ kbd {
         ctx.globalAlpha = 1;
       }
 
-      // Sync DOM HUD
+      // DOM HUD sync
       const setW = (id, frac, color) => {
         const el = document.getElementById(id);
         if (el) {
@@ -1754,9 +2183,15 @@ kbd {
         p.reloading ? "RELOADING" : p.ammo + " / " + this.op.weapon.mag,
       );
       setT("enemies-num", this.enemies.length);
-      const m = Math.floor(this.time / 60),
-        s = Math.floor(this.time % 60);
-      setT("timer-num", m + ":" + (s < 10 ? "0" : "") + s);
+      if (this.planted) {
+        setT("timer-num", "ARMED " + Math.ceil(this.armTimer) + "s");
+        const el = document.getElementById("timer-num");
+        if (el) el.style.color = "#ff5c4d";
+      } else {
+        const m = Math.floor(this.time / 60),
+          s = Math.floor(this.time % 60);
+        setT("timer-num", m + ":" + (s < 10 ? "0" : "") + s);
+      }
       const uses = this.op.gadgetUses === Infinity ? "∞" : p.gadgetUses;
       setT("gadget-num", this.op.gadgetLabel + " (" + uses + ")");
     }
@@ -1800,7 +2235,10 @@ kbd {
     document.getElementById("hud").classList.remove("hidden");
     document.getElementById("op-name").textContent =
       OPERATORS[opKey].name + " · " + OPERATORS[opKey].role;
+    const tn = document.getElementById("timer-num");
+    if (tn) tn.style.color = "";
     game.last = performance.now();
+    window.SIEGE_GAME = game; // debug handle (harmless)
     raf = requestAnimationFrame(loop);
   }
 
@@ -1817,7 +2255,6 @@ kbd {
     document.getElementById("end-reason").textContent = reason || "";
   }
 
-  // Build operator cards
   const opList = document.getElementById("op-list");
   Object.entries(OPERATORS).forEach(([key, op]) => {
     const card = document.createElement("button");
