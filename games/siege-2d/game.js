@@ -1254,13 +1254,16 @@
 
       this.renderTiles(ctx);
       this.renderProps(ctx);
-      this.renderObjectives(ctx);
       this.renderCharges(ctx);
       this.renderEnemies(ctx);
       this.renderBullets(ctx);
       this.renderPlayer(ctx);
       this.renderParticles(ctx);
       this.renderFog(ctx);
+      // Objective beacons + the guide to them draw ON TOP of fog so the plant
+      // sites are always findable across the whole map.
+      this.renderGuide(ctx);
+      this.renderObjectives(ctx);
       this.renderFloaters(ctx);
       this.renderWaypoint(ctx);
 
@@ -1413,42 +1416,93 @@
       }
     }
 
+    // Bright, always-on-top bomb-site beacons so you can always see where to plant.
     renderObjectives(ctx) {
+      const nearest = this.nearestSite();
       for (const o of this.objectives) {
-        // Bomb sites are always faintly visible (beacon), brighter when in LOS.
-        const seen = this.isVisible(o.x, o.y);
         const armed = this.planted && this.plantedSite === o;
         const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 300);
+        const c = armed ? "#ff3b30" : "#ffd25a";
         ctx.save();
         ctx.translate(o.x, o.y);
-        ctx.globalAlpha = seen ? 1 : 0.5;
-        const c = armed ? "#ff3b30" : "#ffd25a";
+        // outer glow
         ctx.fillStyle =
-          "rgba(255,210,90," + (armed ? 0.15 : 0.12) * (1 + pulse) + ")";
+          "rgba(255,210,90," + (armed ? 0.22 : 0.16) * (1 + pulse) + ")";
         ctx.beginPath();
-        ctx.arc(0, 0, TILE * (0.5 + 0.18 * pulse), 0, Math.PI * 2);
+        ctx.arc(0, 0, TILE * (0.7 + 0.22 * pulse), 0, Math.PI * 2);
         ctx.fill();
+        // ring + rotating ticks
         ctx.strokeStyle = c;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.arc(0, 0, TILE * 0.42, 0, Math.PI * 2);
+        ctx.arc(0, 0, TILE * 0.44, 0, Math.PI * 2);
         ctx.stroke();
-        // corner ticks
+        const spin = performance.now() / 900;
         ctx.beginPath();
         for (let a = 0; a < 4; a++) {
-          const ang = (a * Math.PI) / 2 + Math.PI / 4;
-          ctx.moveTo(Math.cos(ang) * TILE * 0.42, Math.sin(ang) * TILE * 0.42);
-          ctx.lineTo(Math.cos(ang) * TILE * 0.54, Math.sin(ang) * TILE * 0.54);
+          const ang = (a * Math.PI) / 2 + spin;
+          ctx.moveTo(Math.cos(ang) * TILE * 0.46, Math.sin(ang) * TILE * 0.46);
+          ctx.lineTo(Math.cos(ang) * TILE * 0.6, Math.sin(ang) * TILE * 0.6);
         }
         ctx.stroke();
+        // letter
         ctx.fillStyle = c;
-        ctx.font = "bold 15px monospace";
+        ctx.font = "bold 16px monospace";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(armed ? "⏱" : o.label, 0, 1);
+        ctx.fillText(armed ? "⏱" : o.label, 0, -1);
+        // tag under the site
+        ctx.font = "bold 8px monospace";
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        const tag = armed ? "ARMED" : "PLANT HERE";
+        const tw = ctx.measureText(tag).width + 8;
+        ctx.fillRect(-tw / 2, TILE * 0.6, tw, 11);
+        ctx.fillStyle = c;
+        ctx.fillText(tag, 0, TILE * 0.6 + 6);
+        // highlight the nearest un-armed site
+        if (!this.planted && o === nearest) {
+          ctx.strokeStyle = "rgba(255,255,255,0.5)";
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.arc(0, 0, TILE * 0.66, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
         ctx.restore();
       }
-      ctx.globalAlpha = 1;
+    }
+
+    nearestSite() {
+      const p = this.player;
+      let best = null,
+        bd = Infinity;
+      for (const o of this.objectives) {
+        const d = dist2(p.x, p.y, o.x, o.y);
+        if (d < bd) {
+          bd = d;
+          best = o;
+        }
+      }
+      return best;
+    }
+
+    // Faint gold guide line from the player to the nearest un-armed site.
+    renderGuide(ctx) {
+      if (this.planted) return;
+      const site = this.nearestSite();
+      if (!site) return;
+      const p = this.player;
+      ctx.save();
+      ctx.strokeStyle = "rgba(255,210,90,0.28)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 10]);
+      ctx.lineDashOffset = -(performance.now() / 60) % 16;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(site.x, site.y);
+      ctx.stroke();
+      ctx.restore();
     }
 
     renderCharges(ctx) {
@@ -1673,31 +1727,41 @@
     renderWaypoint(ctx) {
       if (this.planted) return;
       const p = this.player;
-      let best = null,
-        bd = Infinity;
-      for (const o of this.objectives) {
-        const d = dist2(p.x, p.y, o.x, o.y);
-        if (d < bd) {
-          bd = d;
-          best = o;
-        }
-      }
-      if (!best) return;
+      const best = this.nearestSite();
+      if (!best || this._onSite) return; // hide arrow once you're on the site
       const ang = Math.atan2(best.y - p.y, best.x - p.x);
-      const r = p.radius + 26;
+      const r = p.radius + 28;
       const cx = p.x + Math.cos(ang) * r,
         cy = p.y + Math.sin(ang) * r;
+
+      // arrow head
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(ang);
-      ctx.fillStyle = "rgba(255,210,90,0.9)";
+      ctx.fillStyle = "rgba(255,210,90,0.95)";
       ctx.beginPath();
-      ctx.moveTo(8, 0);
-      ctx.lineTo(-4, -6);
-      ctx.lineTo(-4, 6);
+      ctx.moveTo(11, 0);
+      ctx.lineTo(-4, -7);
+      ctx.lineTo(-4, 7);
       ctx.closePath();
       ctx.fill();
       ctx.restore();
+
+      // label: "SITE A · 12m", kept upright and offset just past the arrow
+      const dist = Math.round(
+        Math.sqrt(dist2(p.x, p.y, best.x, best.y)) / TILE,
+      );
+      const label = "SITE " + best.label + " · " + dist + "m";
+      const lx = p.x + Math.cos(ang) * (r + 16);
+      const ly = p.y + Math.sin(ang) * (r + 16);
+      ctx.font = "bold 11px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const tw = ctx.measureText(label).width + 10;
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.fillRect(lx - tw / 2, ly - 8, tw, 16);
+      ctx.fillStyle = "#ffd25a";
+      ctx.fillText(label, lx, ly);
     }
 
     renderHUD(ctx) {
